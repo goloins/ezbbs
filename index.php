@@ -32,3 +32,28 @@ foreach($homepagemenu as $menu_item) {
 }
 ?>
 </ul>
+</div>
+<div id="body_wrapper">
+    	<h2 id="body_title">
+		<?php echo determineCurrentPageorCat(); ?>	</h2>
+
+        <table><thead>
+            <tr> <th class="headline">Headline</th> 
+            <th class="minimal author">Author</th> 
+            <th class="minimal replies">Replies</th> 
+            <th class="minimal visits">Visits</th> 
+            <th class="minimal last_bump_▼">Last bump ▼</th>
+            <th class="minimal category">Category</th></tr></thead>
+            <tbody><tr class="">
+            <?php $topics = get_topics('all');?>
+                <td class="topic_headline">
+                    <a class="" title="Topic text preview in a tooltip" 
+                    href="/topic/68467">Topic title, affected by poster conditions</a></td>
+                    <td class="minimal"><strong>Poster Name</strong></td>
+                    <td class="minimal"><strong>Number of Replies (int)</strong></td>
+                    <td class="minimal">Number of Views (int)</td>
+                    <td class="minimal"><span class="help" title="Full UTC Date complete with stool sample">Time ago</span></td>
+                    <td class="minimal"><a href="/cat/1">Category name</a></td>
+            </tr>
+        <!-- each odd tr will have the class "odd" for styling purposes-->
+        </tbody></table>

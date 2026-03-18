@@ -114,8 +114,23 @@ $homepagemenu[] = array(
     'Search' => '/search',
     'Stuff' => '/stuff'
 );
+global $homepagemenu;
 
 
+function determineCurrentPageorCat(){
+    if(isset($_GET['url'])){
+        $url = $_GET['url'];
+        if(strpos($url, 'cat/') === 0){
+            $cat_id = intval(substr($url, 4));
+            global $categories;
+            return isset($categories[$cat_id]) ? $categories[$cat_id] : 'Unknown Category';
+        } else {
+            return determine_current_page($url);
+        }
+    } else {
+        return 'Latest Threads';
+    }
+}
 // Category defaults - these are used for the categories on the site, more can be added in the database. It will start with these. todo!
 $categories = array(1 => "General", 2 => "Sports", 3 => "Technology", 4 => "Gaming", 5 => "Music", 6 => "Miscellaneous", 7=> "Meta");
 
