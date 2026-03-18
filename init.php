@@ -113,7 +113,7 @@ $homepagemenu[] = array(
     'Folks' => '/folks',
     'Search' => '/search',
     'Stuff' => '/stuff'
-)
+);
 
 
 // Category defaults - these are used for the categories on the site, more can be added in the database. It will start with these. todo!
