@@ -66,6 +66,13 @@ $user = array(
     'profilehyperlinkcolor' => '#0000FF' // Default profile hyperlink color
 );
 
+$social_icons = array(
+    'userwebsite' => 'assets/png/social_icons/website.png',
+    'usergemsite' => 'assets/png/social_icons/gemlog.png',
+    'userspacehey' => 'assets/png/social_icons/spacehey.png',
+    'userirchandleandnet' => 'assets/png/social_icons/irc.png',
+    'usersmsnescargot' => 'assets/png/social_icons/msn.png'
+);
 
 function do_insertNewUser($supplied_username, $supplied_password, $supplied_email) {
     global $go_sql, $user;
