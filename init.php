@@ -97,15 +97,30 @@ function do_insertNewUser($supplied_username, $supplied_password, $supplied_emai
     return true;
 
 }
+//<ul id="main_menu" class="menu"><li class="hot_topics"><a href="/hot_topics">Hot</a></li><li class="topics"><a href="/topics">Topics</a></li><li class="bumps"><a href="/bumps">Bumps</a></li><li class="replies"><a href="/replies">Replies</a></li><li class="new_topic"><a href="/new_topic">New topic</a></li><li class="history"><a href="/history">History</a></li><li class="watchlist"><a href="/watchlist">Watchlist</a></li><li class="bulletins"><a href="/bulletins">Bulletins</a></li><li class="folks"><a href="/folks">Folks</a></li><li class="search"><a href="/search">Search</a></li><li class="stuff"><a href="/stuff">Stuff</a></li>    </ul>
+$homepagemenu = array(
+    'Hot' => '/hot_topics',
+    'Topics' => '/topics',
+    'Bumps' => '/bumps',
+    'Replies' => '/replies',
+    'New Topic' => '/new_topic');
+
+for($i = 1; $i <= count($categories); $i++){
+    $homepagemenu[$categories[$i]] = '/cat/' . $i;
+} //intellisense literally read my mind here. nice.
+
+$homepagemenu[] = array(
+    'Folks' => '/folks',
+    'Search' => '/search',
+    'Stuff' => '/stuff'
+)
 
 
-
-
-// Category defaults - these are used for the categories on the site, more can be added in the database. It will start with these. 
+// Category defaults - these are used for the categories on the site, more can be added in the database. It will start with these. todo!
 $categories = array(1 => "General", 2 => "Sports", 3 => "Technology", 4 => "Gaming", 5 => "Music", 6 => "Miscellaneous", 7=> "Meta");
 
 
-// Default Awards - any additional awards can be added to the awards table in the database, but these are the defaults that come with the site
+// Default Awards - any additional awards can be added to the awards table in the database, but these are the defaults that come with the site todo!
 $awards = array(
     1 => array(
         'name' => 'First Post',

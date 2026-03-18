@@ -24,6 +24,11 @@ require_once 'init.php';
 		        <link rel="canonical" href="<?php echo $site['site_url'];?>" />
 		</head>
 <body class="page-index desktop-mode">	<h1 class="top_text" id="logo">
-		<a rel="index" href="/" class="help_cursor" title="<?php echo fun_getslogan();?>"><?php echo $site['site_name'];?></a>
+		<a rel="index" href="/" class="help_cursor" title="<?php echo fun_getslogan();?>"><?php echo $site['site_name'];?></a></h1>
+<ul id="main_menu" class="menu">
 <?php 
-
+foreach($homepagemenu as $menu_item) {
+    echo '<li><a href="' . $menu_item['url'] . '">' . $menu_item['name'] . '</a></li>';
+}
+?>
+</ul>
