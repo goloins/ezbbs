@@ -67,11 +67,11 @@ $user = array(
 );
 
 $social_icons = array(
-    'userwebsite' => 'assets/png/social_icons/website.png',
-    'usergemsite' => 'assets/png/social_icons/gemlog.png',
-    'userspacehey' => 'assets/png/social_icons/spacehey.png',
-    'userirchandleandnet' => 'assets/png/social_icons/irc.png',
-    'usersmsnescargot' => 'assets/png/social_icons/msn.png'
+    'userwebsite' => 'assets/png/social/website.png',
+    'usergemsite' => 'assets/png/social/gemlog.png',
+    'userspacehey' => 'assets/png/social/spacehey.png',
+    'userirchandleandnet' => 'assets/png/social/irc.png',
+    'usersmsnescargot' => 'assets/png/social/msn.png'
 );
 
 function do_insertNewUser($supplied_username, $supplied_password, $supplied_email) {
