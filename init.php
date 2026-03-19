@@ -799,6 +799,54 @@ function do_fetchPollById($poll_id){
     return $stmt->get_result()->fetch_assoc(); // array of poll info and votes
 }
 
+function do_getSortedPollResults($poll_id){
+    $poll = do_fetchPollById($poll_id);
+    $options = array(
+        1 => array('option' => $poll['option_1'], 'votes' => $poll['votes_1']),
+        2 => array('option' => $poll['option_2'], 'votes' => $poll['votes_2']),
+        3 => array('option' => $poll['option_3'], 'votes' => $poll['votes_3']),
+        4 => array('option' => $poll['option_4'], 'votes' => $poll['votes_4']),
+        5 => array('option' => $poll['option_5'], 'votes' => $poll['votes_5']),
+    );
+    // Sort options by votes in descending order
+    usort($options, function($a, $b) {
+        return $b['votes'] - $a['votes'];
+    });
+    return $options; // returns options sorted by votes
+}
+
+function do_getPollTotalVotes($poll_id){
+    $poll = do_fetchPollById($poll_id);
+    $total_votes = $poll['votes_1'] + $poll['votes_2'] + $poll['votes_3'] + $poll['votes_4'] + $poll['votes_5'];
+    return $total_votes;
+}
+
+
+function do_getPollWinnerWithPercentage($poll_id){
+    $poll = do_fetchPollById($poll_id);
+    $total_votes = do_getPollTotalVotes($poll_id);
+    if ($total_votes == 0) {
+        return null; // No votes cast
+    }
+    $options = array(
+        1 => array('option' => $poll['option_1'], 'votes' => $poll['votes_1']),
+        2 => array('option' => $poll['option_2'], 'votes' => $poll['votes_2']),
+        3 => array('option' => $poll['option_3'], 'votes' => $poll['votes_3']),
+        4 => array('option' => $poll['option_4'], 'votes' => $poll['votes_4']),
+        5 => array('option' => $poll['option_5'], 'votes' => $poll['votes_5']),
+    );
+    // Find the option with the most votes
+    usort($options, function($a, $b) {
+        return $b['votes'] - $a['votes'];
+    });
+    $winner = $options[0];
+    $percentage = ($winner['votes'] / $total_votes) * 100;
+    return array('winner' => $winner['option'], 'percentage' => round($percentage, 2));
+}
+
+
+
+
 $samplePostFlairs = array("Funny" => 10, "Informative" => 5, "Insightful" => 3, "Hell nah" => 1, "Wut" => 4); 
 //this is just a sample to help intellisense, the actual flairs and their counts would be stored in the database and fetched as needed.
 //the keys are the flair names, and the values are the counts of how many times that flair has been given to that post.
