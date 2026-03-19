@@ -20,7 +20,8 @@ $site = array(
     'topic_headline_length' => 50,
     'topic_poster_banned_prefix' => '<span class="help" title="USER WAS BANNED FOR THIS POST">[B]</span>',
     'admin_suffix' => ' [<a href=/admin>A</a>]', //suffix for topics posted by admins
-    'minimum_posts_for_outbound_links' => 5, //number of posts a user must have before they can post outbound links, to prevent spam.
+    'minimum_posts_for_outbound_links' => 5,
+    'disclaimer' => 'All trademarks and copyrights on this site are owned by their respective parties. All uploaded files and comments are the responsibility of their own posters.', //site disclaimer
     );
 
 //Site SQL defaults, change these to match your sql credentials.    

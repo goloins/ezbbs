@@ -164,3 +164,20 @@ foreach($homepagemenu as $menu_item) {
                     <td class="minimal"><a href="/cat/<?php echo $topic['category_id']; ?>">in <?php echo $topic['category_name']; ?></a></td>
             </tr><?php } ?>
         </tbody></table>
+
+        <li><span class="reply_id unimportant"><a href="#top">[Top]</a></span></li></ul>
+
+<script type="text/javascript">
+    window.ignore_list = false;
+</script>
+
+</div><div id="footer">
+
+<br/><div style="text-align:center" class="unimportant">
+    <span><?php echo $site['disclaimer']; ?></span><br/><span>ezbbs, bby. <a href="https://github.com/goloins/ezbbs">Contribute on GitHub or get your own copy!</a></span></div><br/>
+    		<noscript><br /><span class="unimportant">Note: Your browser's JavaScript is disabled; some site features may not fully function, but don't worry, we're trying to get rid of all the js :^)</span></noscript>
+	<div id="quotePreview"></div>
+    </div>
+    
+</body>
+</html>
