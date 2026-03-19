@@ -404,6 +404,20 @@ $sampletopic = array(
 
 );
 
+function getThreadById($thread_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT * FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $thread_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        return $result->fetch_assoc();
+    } else {
+        return null; // or some default value
+    }
+}
+
+
 $samplereply = array(
     'id' => 1,
     'thread_id' => 1,
