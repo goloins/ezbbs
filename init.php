@@ -940,6 +940,7 @@ if(isset($_COOKIE['user_id']) && isset($_COOKIE['pw_hash'])){
     }
 }
 
+
 if($islogged){
     $_SESSION['user'] = $user; // Populate defaults
     $stmt = $go_sql->prepare("SELECT * FROM users WHERE id = ?");
@@ -953,3 +954,113 @@ if($islogged){
     }
 }
 
+$notifcategories = array(
+    'mention' => 'You were mentioned/replied to in a post.',
+    'trophy' => 'You earned a trophy, congrats!',
+    'ban' => 'You have been banned.',
+    // Add more categories as needed
+);
+
+function do_fetchAnyNotifs(){
+    // This function will check for any notifications for the logged in user and return them to be displayed in the UI.
+    global $go_sql;
+    if(isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null){
+        $user_id = $_SESSION['user_id'];
+        $stmt = $go_sql->prepare("SELECT * FROM notifications WHERE user_id = ? AND is_read = 0");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        return $stmt->get_result(); // This will return a result set of unread notifications for the user
+    } else {
+        return null; // No user logged in, so no notifications to display   
+    }
+}
+
+function do_HandleNotifs($notiftype, $notifdata){
+    // This function will take a notification type and data
+    // each type of notif works differently:
+    // mention: data will include the thread/reply id and a link. 
+    // trophy: data will include the name of the trophy and a link to the user's profile
+    // ban: data will include the reason for the ban and its duration.
+
+    //we will be using the typical atbbs notif format,
+    //which is a bar at the top of the page thats persistence depends on the format.
+    /*
+        bans will persist no matter what, showing a countdown. this overrides all other 
+        notifs and will be the only one shown until the ban expires.
+
+        trophy notifs will persist until the user clicks on them to view the trophy. 
+        they will dissappear after being clicked on, and only override the mention notifs.
+
+        mention notifs are least persistent, but can be dismissed. If there are multiple,
+        rather than stacking them, we'll arrange them in a marquee ticker that auto scrolls like this:
+
+        [New mention in Thread Title 1] (small text)[dismiss], etc and they will scroll.
+            the dismiss will be a hyperlink that goes to /dismissnotif/notif_id and then back to
+            the previous page. The remaining notifs will continue to scroll in the ticker.
+
+            the notif bar isn't persistent and doesn't need to be. it is written:
+                <div id="notice"><strong>Notice:</strong> 
+                <strong>New mention in Thread 1</strong> <a href=/thread/1#reply_anchorpoint> [view] <a href="/dismissnotif/123">[dismiss]</a></div>
+
+            if there are over 1 notifs, a "|" will separate them in the ticker.
+
+            if the length of the notifs exceeds the width of the page, it will scroll like a marquee, otherwise it will just sit there.
+
+
+            the notifs sql table will looks like
+            id (int, primary key)
+            user_id (int, foreign key to users table)
+            type (varchar) - the type of notification, e.g. "mention", "trophy", "ban", etc.
+            data (text) - a json_encoded array of data relevant to the notification, e.g. for a mention it might include the thread_id and a link to the post, for a trophy it might include the trophy name and a link to the trophy page, for a ban it might include the reason and duration, etc.
+            is_read (boolean) -
+
+    */
+    global $notifcategories;
+    $allnotifs = do_fetchAnyNotifs(); // fetch all unread notifs for the user
+    $mentions = array();
+    foreach($allnotifs as $notif) {
+        // we'll loop through the notifs and display them in the notif bar according to their type and data.
+        // for simplicity, we'll just handle one notif at a time in this function, but in practice you would want to handle multiple notifs and arrange them in the ticker as described above.
+        $notiftype = $notif['type'];
+        $notifdata = json_decode($notif['data'], true);
+        $notif_id = $notif['id'];
+
+        
+        $notifbartext = '';
+        if($notiftype == 'ban'){
+            $notifbartext = '<strong>' . $notifcategories['ban'] . '</strong><br>Reason: ' . htmlspecialchars($notifdata['reason']) . '<br>Duration: ' . htmlspecialchars($notifdata['duration']);
+            // This will be the only notif shown, so we can return it immediately.
+            return $notifbartext;
+        } elseif($notiftype == 'trophy' && isset($_SESSION['user_id'])){
+            $notifbartext = '<strong>' . $notifcategories['trophy'] . '</strong><br>You earned the "' . htmlspecialchars($notifdata['trophy_name']) . '" trophy! <a href="/user/' . htmlspecialchars($_SESSION['user_id']) . '">[view]</a> <a href="/do/dismissnotif/' . $notif_id . '">[dismiss]</a>';    
+            return $notifbartext; // trophy notifs override mention notifs, but can be dismissed by clicking on them to view the trophy. so we return it immediately to be displayed in the notif bar.
+        }   elseif($notiftype == 'mention'){
+            if(empty($notifbartext)){
+                $notifbartext = '<strong>' . $notifcategories['mention'] . '</strong><br><a href="' . htmlspecialchars($notifdata['link']) . '">[view]</a><a href="/do/dismissnotif/' . $notif_id . '">[dismiss]</a>';
+            } else {
+                $notifbartext .= '| <strong>' . $notifcategories['mention'] . '</strong><br><a href="' . htmlspecialchars($notifdata['link']) . '">[view]</a><a href="/do/dismissnotif/' . $notif_id . '">[dismiss]</a>';
+            }
+            if(strlen($notifbartext) > 150){ // if the notif bar text exceeds 100 characters, we will just show the number of notifs instead to prevent overflow. this is a simple solution to the problem of too many notifs, but it works for our purposes.
+                $notifbartext = '<marquee>'.$notifbartext.'</marquee>'; // if the notif bar text exceeds 150 characters, we will make it scroll like a marquee to prevent overflow. this is a simple solution to the problem of too many notifs, but it works for our purposes.
+            }
+        }
+        return $notifbartext; // return the formatted notification text to be displayed in the notif bar.
+    }       
+}
+
+function do_notificationflow(){
+    // this function will be called on each page load to check for any notifications for the logged in user and return the formatted notification text to be displayed in the notif bar.
+    if(isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null){
+        $herewego = do_HandleNotifs(); // this will fetch the notifs and format them for display in the notif bar.
+        echo '<div id="notice">'.$herewego.'</div>'; // this will display the notif bar with the formatted notification text.
+    } else {
+        return null; // no user logged in, so no notifications to display
+    }
+}
+
+function do_setnotifread($notif_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("UPDATE notifications SET is_read = 1 WHERE id = ?");
+    $stmt->bind_param("i", $notif_id);
+    $stmt->execute();
+}
