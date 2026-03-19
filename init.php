@@ -1064,3 +1064,15 @@ function do_setnotifread($notif_id){
     $stmt->bind_param("i", $notif_id);
     $stmt->execute();
 }
+
+
+function do_logentry($severity, $message, $modlog = false, $error = null){
+    //right now, todo: make it do something. in the future
+    //this should log somewhere. right now it's going to just sit here
+    //as a stub so I can finish adding it to all the /do/ framework files
+    // $error is null by default because I feel like most shit is notices
+    //we've also added the modlogging option which will be called only
+    //mod /do/ actions. 
+
+    $severities = array("Notice", "Warning", "Error");
+}

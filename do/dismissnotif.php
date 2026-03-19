@@ -15,6 +15,7 @@ include('../init.php');
 $notifId = intval($_GET['id']);
 
 do_setnotifread($notifId) or die('ezbbs error: failed to mark notification as read. tell admin to check the logs.');
+do_logentry("Notice", "Notification ".$notifId." set as read by user ".$_SESSION['user_id']);
 
 // a good place to add logging for moderation purposes is here in a 'do' file since
 // most user simple actions are going to be handled by one of these style files.
