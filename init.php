@@ -549,9 +549,9 @@ function do_pollvote($poll_id, $option_id, $user_id){
             $stmt->bind_param("si", $voted_json, $poll_id);
             $stmt->execute();
             return true; // Vote recorded successfully
+       }
     }
 }
-
 
 function do_checkIfUserVotedInPoll($poll_id, $user_id){
     global $go_sql;
@@ -765,3 +765,4 @@ if($islogged){
         $_SESSION['user'] = array_merge($_SESSION['user'], $db_user_data);
     }
 }
+
