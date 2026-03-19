@@ -356,7 +356,7 @@ $sampletopic = array(
     'isLocked' => false,
     'isLemoned' => false, //a lemon party, for old users as defined in $site
     'isChanlike' => false, //chanlike threads dissappear from the homepage after a certain number of replies and will be archived.
-    'hasFlairs' => json_encode(array()), //users can throw flairs/reacts on a post. can be synthesized ala slashdot.
+    'hasFlairs' => json_encode(array(1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0)), //will all be set to zero on new threads. nb: if adding flairs, update here.
 
 
 
