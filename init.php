@@ -397,6 +397,13 @@ $samplereply = array(
 
 
 );
+
+// checking if a thread is lemoned, chanlike, or archived by thread id to determind if poll can be voted in.
+function chk_IsPollLemonedChannedOrArchivedByThreadId($thread_id){
+    return chk_ThreadLemoned($thread_id) || chk_ThreadChanlike($thread_id) || chk_ThreadArchived($thread_id);
+}
+
+
 //meat and potatoes
 function post_Reply($thread_id, $poster_id, $content, $media = array(), $attached_links = array(), $poll = 0){
     global $go_sql;
@@ -678,10 +685,35 @@ function do_createPoll($question, $options){
     return $stmt->insert_id; // return the id of the newly created poll
 }
 
+//this will figure out which topic/reply the poll is attached to.
+function do_GetPollOwnerPostorThread($poll_id, $user_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT thread_id, reply_id FROM polls WHERE id = ?");
+    $stmt->bind_param("i", $poll_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        if($row['thread_id'] > 0){
+            return array('type' => 'thread', 'id' => $row['thread_id']);
+        } else if($row['reply_id'] > 0){
+            return array('type' => 'reply', 'id' => $row['reply_id']);
+        } else {
+            return null; // Poll is not attached to any thread or reply
+        }
+    } else {
+        return null; // Poll not found
+    }
+}
+
+
 //this bad boys gonna run every time a user votes in a poll, so we need to make sure it's efficient by thrashing the db (lol)
 function do_pollvote($poll_id, $option_id, $user_id){
     global $go_sql;
-    // First, we need to check if the user has already voted in this poll.
+    // sanity checks: is the poll alive? and is the user allowed to vote in it?
+    if (chk_IsPollLemonedChannedOrArchivedByThreadId(do_GetPollOwnerPostorThread($poll_id, $user_id)['id'])) {
+        return false; // Poll is no longer active
+    }
     if (do_checkIfUserVotedInPoll($poll_id, $user_id)) {
         return false; // User has already voted
     }
