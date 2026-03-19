@@ -336,6 +336,21 @@ function chk_ThreadChanlike($topic_id){
     }
 }
 
+
+function chk_TopicHasMediaOrLink($topic_id){ //text only post detection.
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT media, attached_links FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $topic_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return !empty($row['media']) || !empty($row['attached_links']);
+    } else {
+        return false; // or some default value
+    }
+}
+
 //sample here to help inteli.
 $sampletopic = array(
     'id' => 1,
@@ -364,6 +379,86 @@ $sampletopic = array(
 
 );
 
+$samplereply = array(
+    'id' => 1,
+    'thread_id' => 1,
+    'content' => 'This is a sample reply to the first topic. Welcome to the discussion!',
+    'poster_id' => 2,
+    'created_at' => time(),
+    'media' => json_encode(array()),
+    'attached_links' => json_encode(array()),
+    'isShitpost' => false,
+    'hasPoll' => 0, // if the reply has a poll, this will be the poll id
+    'isHidden' => false,
+
+);
+
+function do_RenderThreadLinkInReplyText($text){
+    //replying to users is done with @username, but threads are referred to with ">>"
+    //so if the text contains ">>" followed by a number, we'll assume it's a thread link.
+    //this should create a link to the thread when rendering the reply and have 
+    //a tooltip of the thread title when hovered over.
+    if(preg_match('/>>\d+/', $text)){
+        $text = preg_replace_callback('/>>(\d+)/', function($matches) {
+            $thread_id = $matches[1];
+            global $go_sql;
+            $stmt = $go_sql->prepare("SELECT title FROM topics WHERE id = ?");
+            $stmt->bind_param("i", $thread_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows > 0) {
+                $row = $result->fetch_assoc();
+                $thread_title = htmlspecialchars($row['title']);
+                return '<a href="/thread/' . $thread_id . '" class="thread-link" title="' . $thread_title . '">>>' . $thread_id . '</a>';
+            } else {
+                return '>>' . $thread_id; // If thread not found, just return the original text
+            }
+        }, htmlspecialchars($text));
+    }
+
+    
+}
+
+function do_AddTooltipWithReplySnippet($reply_content, $reply_id){
+   //When a user replies @username, we want to add a snippet of username's last post
+   //in the thread (the one presumably being replied to) as a tooltip on the @username text. This function will be called when rendering the reply text.
+    if(preg_match('/@(\w+)/', $reply_content)){
+        $reply_content = preg_replace_callback('/@(\w+)/', function($matches) use ($reply_id) {
+            $username = $matches[1];
+            global $go_sql;
+            // First, we need to get the user id of the username being mentioned
+            $stmt = $go_sql->prepare("SELECT id FROM users WHERE username = ?");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows > 0) {
+                $row = $result->fetch_assoc();
+                $mentioned_user_id = $row['id'];
+                // Now we need to get the last reply from that user in the same thread as the current reply
+                $stmt = $go_sql->prepare("SELECT content FROM replies WHERE poster_id = ? AND thread_id = (SELECT thread_id FROM replies WHERE id = ?) ORDER BY created_at DESC LIMIT 1");
+                $stmt->bind_param("ii", $mentioned_user_id, $reply_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($result->num_rows > 0) {
+                    $row = $result->fetch_assoc();
+                    $last_reply_snippet = htmlspecialchars(substr($row['content'], 0, 100)); // Get a snippet of the last reply
+                    return '<span class="user-mention" title="' . $last_reply_snippet . '">@' . htmlspecialchars($username) . '</span>';
+                } else {
+                        //Assume user being mentioned in that thread.
+                        //todo: send notif to mentioned user.
+                        //notif_sendMentioned($mentioned_user_id, $reply_id); 
+                        //this is the function that would send a notification to the mentioned user
+
+                    return '@' . htmlspecialchars($username); 
+                    
+                }
+            } else {
+                return '@' . htmlspecialchars($username); // If user not found, just return the original text
+            }
+        }, htmlspecialchars($reply_content));
+    }
+ 
+}
 
 //i wonder if I should do polls as yet another array or an object.
 /*
