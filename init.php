@@ -15,7 +15,11 @@ $site = array(
     'site_url' => 'https://localhost/',
     'rss_url' => $site['site_url'] . 'rss.xml', //note: site_url/catname/rss.xml works for cat specific feeds.
     'default_lemon_years' => 2, //number of years before lemon threads can be replied to
-    'chanlike_reply_limit' => 100 //number of replies before chanlike threads are removed from the homepage and archived
+    'chanlike_reply_limit' => 100, //number of replies before chanlike threads are removed from the homepage and archived
+    'topic_preview_length' => 20, //number of characters to show in the topic preview on the homepage and category pages.
+    'topic_headline_length' => 50,
+    'topic_poster_banned_prefix' => '<span class="help" title="USER WAS BANNED FOR THIS POST">[B]</span>',
+    'admin_suffix' => ' [<a href=/admin>A</a>]' //suffix for topics posted by admins
     );
 
 //Site SQL defaults, change these to match your sql credentials.    
@@ -67,6 +71,22 @@ $user = array(
     'profilelowerheadingcolor' => '#999999', // Default profile lower heading color
     'profilehyperlinkcolor' => '#0000FF' // Default profile hyperlink color
 );
+
+
+function chk_PosterIsBanned($poster_id) {
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT isbanned FROM users WHERE id = ?");
+    $stmt->bind_param("i", $poster_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['isbanned'];
+    } else {
+        return false; // or some default value
+    }
+}
+
 
 $social_icons = array(
     'userwebsite' => 'assets/png/social/website.png',
@@ -340,6 +360,20 @@ $sampletopic = array(
 
 
 );
+
+function fun_timeAgo($timestamp) {
+    $timeDifference = time() - $timestamp;
+
+    if ($timeDifference < 60) {
+        return $timeDifference . ' seconds ago';
+    } elseif ($timeDifference < 3600) {
+        return floor($timeDifference / 60) . ' minutes ago';
+    } elseif ($timeDifference < 86400) {
+        return floor($timeDifference / 3600) . ' hours ago';
+    } else {
+        return floor($timeDifference / 86400) . ' days ago';
+    }
+}
 
 //slogan stuff. it changes on each page load, just for fun. you can add as many slogans as you want
 
