@@ -361,6 +361,15 @@ $sampletopic = array(
 
 );
 
+
+function do_getAwardsByUserId($user_id) {
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT * FROM awards WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    return $stmt->get_result();
+}
+
 function fun_timeAgo($timestamp) {
     $timeDifference = time() - $timestamp;
 
@@ -370,8 +379,10 @@ function fun_timeAgo($timestamp) {
         return floor($timeDifference / 60) . ' minutes ago';
     } elseif ($timeDifference < 86400) {
         return floor($timeDifference / 3600) . ' hours ago';
-    } else {
+    } elseif ($timeDifference < 604800) {
         return floor($timeDifference / 86400) . ' days ago';
+    }else{
+        return 'a long time ago';
     }
 }
 
