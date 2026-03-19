@@ -506,9 +506,30 @@ question (varchar)
 
 */
 
+//this will be called during either thread or reply submission if polls are enabled for either.
+function do_createPoll($question, $options){
+    global $go_sql;
+    // $options should be an array of up to 5 options for the poll.
+    $option_1 = isset($options[0]) ? $options[0] : null;
+    $option_2 = isset($options[1]) ? $options[1] : null;
+    $option_3 = isset($options[2]) ? $options[2] : null;
+    $option_4 = isset($options[3]) ? $options[3] : null;
+    $option_5 = isset($options[4]) ? $options[4] : null;
+
+    $stmt = $go_sql->prepare("INSERT INTO polls (question, option_1, option_2, option_3, option_4, option_5, votes_1, votes_2, votes_3, votes_4, votes_5, voted) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?)");
+    $empty_voted = json_encode(array());
+    $stmt->bind_param("sssssss", $question, $option_1, $option_2, $option_3, $option_4, $option_5, $empty_voted);
+    $stmt->execute();
+    return $stmt->insert_id; // return the id of the newly created poll
+}
+
+//this bad boys gonna run every time a user votes in a poll, so we need to make sure it's efficient by thrashing the db (lol)
 function do_pollvote($poll_id, $option_id, $user_id){
     global $go_sql;
     // First, we need to check if the user has already voted in this poll.
+    if (do_checkIfUserVotedInPoll($poll_id, $user_id)) {
+        return false; // User has already voted
+    }
     $stmt = $go_sql->prepare("SELECT voted FROM polls WHERE id = ?");
     $stmt->bind_param("i", $poll_id);
     $stmt->execute();
@@ -530,6 +551,7 @@ function do_pollvote($poll_id, $option_id, $user_id){
             return true; // Vote recorded successfully
     }
 }
+
 
 function do_checkIfUserVotedInPoll($poll_id, $user_id){
     global $go_sql;
