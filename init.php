@@ -97,6 +97,22 @@ $social_icons = array(
     'usersmsnescargot' => 'assets/png/social/msn.png'
 );
 
+
+function get_UserNameForID($user_id) {
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT username FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['username'];
+    } else {
+        return 'Unknown User'; // or some default value
+    }
+}
+
+
 function do_insertNewUser($supplied_username, $supplied_password, $supplied_email) {
     global $go_sql, $user;
     // Check if the username already exists
@@ -601,6 +617,21 @@ function fun_EmojiTimeMachine($text){
     return $text;
 }
 
+function fun_secondsToHumanReadable($seconds) {
+    if ($seconds >= 86400) {
+        $days = floor($seconds / 86400);
+        return $days === 1 ? "$days day" : "$days days";
+    } elseif ($seconds >= 3600) {
+        $hours = floor($seconds / 3600);
+        return $hours === 1 ? "$hours hour" : "$hours hours";
+    } elseif ($seconds >= 60) {
+        $minutes = floor($seconds / 60);
+        return $minutes === 1 ? "$minutes minute" : "$minutes minutes";
+    } else {
+        return "$seconds seconds";
+    }
+}
+
 
 //main rendering functions
 function do_RenderTopicContent($topic_content){
@@ -955,7 +986,8 @@ if($islogged){
 }
 
 $notifcategories = array(
-    'mention' => 'You were mentioned/replied to in a post.',
+    'feedback' => 'It Worked!',
+    'mention' => 'HEY! LOOK! LISTEN!',
     'trophy' => 'You earned a trophy, congrats!',
     'ban' => 'You have been banned.',
     // Add more categories as needed
@@ -974,7 +1006,6 @@ function do_fetchAnyNotifs(){
         return null; // No user logged in, so no notifications to display   
     }
 }
-
 function do_HandleNotifs($notiftype, $notifdata){
     // This function will take a notification type and data
     // each type of notif works differently:
@@ -1027,8 +1058,13 @@ function do_HandleNotifs($notiftype, $notifdata){
 
         
         $notifbartext = '';
-        if($notiftype == 'ban'){
-            $notifbartext = '<strong>' . $notifcategories['ban'] . '</strong><br>Reason: ' . htmlspecialchars($notifdata['reason']) . '<br>Duration: ' . htmlspecialchars($notifdata['duration']);
+        if($notiftype == 'feedback'){
+            $notifbartext = '<strong>' . $notifcategories['feedback'] . '</strong><br>' . htmlspecialchars($notifdata['message']);
+            // This will be the only notif shown, so we can return it immediately.
+            return $notifbartext;
+        }
+        elseif($notiftype == 'ban'){
+            $notifbartext = '<strong>' . $notifcategories['ban'] . '</strong><br>Reason: ' . htmlspecialchars($notifdata['reason']) . '<br>Duration: ' . fun_secondsToHumanReadable(htmlspecialchars($notifdata['duration']));
             // This will be the only notif shown, so we can return it immediately.
             return $notifbartext;
         } elseif($notiftype == 'trophy' && isset($_SESSION['user_id'])){
@@ -1065,6 +1101,13 @@ function do_setnotifread($notif_id){
     $stmt->execute();
 }
 
+function do_sendnotification($user_id, $type, $data){
+    global $go_sql;
+    $data_json = json_encode($data);
+    $stmt = $go_sql->prepare("INSERT INTO notifications (user_id, type, data, is_read) VALUES (?, ?, ?, 0)");
+    $stmt->bind_param("iss", $user_id, $type, $data_json);
+    $stmt->execute();
+}
 
 function do_logentry($severity, $message, $modlog = false, $error = null){
     //right now, todo: make it do something. in the future
@@ -1075,4 +1118,32 @@ function do_logentry($severity, $message, $modlog = false, $error = null){
     //mod /do/ actions. 
 
     $severities = array("Notice", "Warning", "Error");
+}
+
+function do_setuserbanned($user_id, $ban_length, $ban_reason){
+    global $go_sql;
+    $stmt = $go_sql->prepare("UPDATE users SET isbanned = 1, ban_length = ?, ban_reason = ? WHERE id = ?");
+    $stmt->bind_param("isi", $ban_length, $ban_reason, $user_id);
+    $stmt->execute();
+
+    //L A N K : let a neerdowell know!
+    do_sendnotification($user_id, "ban", array("length" => $ban_length, "reason" => $ban_reason));
+}
+
+function do_setuserunbanned($user_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("UPDATE users SET isbanned = 0, ban_length = 0, ban_reason = '' WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+
+    //L A N K : let a neerdowell know!
+    do_clearUserBanNotifs($user_id);
+    do_sendnotification($user_id, "feedback", array("message" => "You have been unbanned manually by a mod, congrats I guess."));
+}
+
+function do_clearUserBanNotifs($user_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("DELETE FROM notifications WHERE user_id = ? AND type = 'ban'");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
 }
