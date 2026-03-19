@@ -46,6 +46,7 @@ if ($go_sql->connect_error) {
 //User defaults, these are used for non-logged in users, and for new users. Change them if you want to customize the default user experience.
 //buyer beware, adding more will require you to add more columns to the users table in the database, and also in any user-facing sql queries.
 $user = array(
+    'user_id' => 'guest',
     'isloggedin' => false,
     'theme' => 'default',
     'isadmin' => false,
@@ -595,10 +596,7 @@ function do_AddTooltipWithReplySnippet($reply_content, $reply_id){
                     $last_reply_snippet = htmlspecialchars(substr($row['content'], 0, 100)); // Get a snippet of the last reply
                     return '<span class="user-mention" title="' . $last_reply_snippet . '">@' . htmlspecialchars($username) . '</span>';
                 } else {
-                        //Assume user being mentioned in that thread.
-                        //todo: send notif to mentioned user.
-                        //notif_sendMentioned($mentioned_user_id, $reply_id); 
-                        //this is the function that would send a notification to the mentioned user
+                        do_sendnotification($mentioned_user_id, 'You were mentioned in a reply', '/thread/' . get_ThreadIdByReplyId($reply_id) . '#reply');
 
                     return '@' . htmlspecialchars($username); 
                     
@@ -952,7 +950,8 @@ function do_fetchAnyNotifs(){
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         return $stmt->get_result(); // This will return a result set of unread notifications for the user
-    } else {
+    }
+    else {
         return null; // No user logged in, so no notifications to display   
     }
 }
@@ -1053,11 +1052,17 @@ function do_setnotifread($notif_id){
 
 function do_sendnotification($user_id, $type, $data){
     global $go_sql;
+    if(!isset($_SESSION['user_id'])|| $user_id == "guest"){
+       // do_cookieNotif($type, $data); 
+        return null;
+    }
     $data_json = json_encode($data);
     $stmt = $go_sql->prepare("INSERT INTO notifications (user_id, type, data, is_read) VALUES (?, ?, ?, 0)");
     $stmt->bind_param("iss", $user_id, $type, $data_json);
     $stmt->execute();
 }
+
+
 
 function do_logentry($severity, $message, $modlog = false, $error = null){
     //right now, todo: make it do something. in the future
@@ -1100,6 +1105,16 @@ function do_clearUserBanNotifs($user_id){
 
 //login flow. core functions and checks to determine login status
 
+function do_logout(){
+    //this will log the user out by clearing their session and cookies.
+    if(!isset($_SESSION)) {
+        session_start();
+    }
+    session_unset();
+    session_destroy();
+    setcookie('user_id', '', time() - 3600);
+    setcookie('pw_hash', '', time() - 3600);
+}
 
 $islogged = false;
 

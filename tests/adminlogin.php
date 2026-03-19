@@ -36,6 +36,7 @@ $_SESSION['theme'] = $site['default_theme'];
 global $islogged;
 $islogged = true;
 
-do_sendnotification(1, "feedback", array("message" => "You have been logged in as admin for testing purposes. Please delete the /tests/ folder when you are done testing.", $modlog=true));
+do_sendnotification(1, "feedback", array("message" => "You have been logged in as admin for testing purposes. Please delete the /tests/ folder when you are done testing."));
+do_logentry("Notice", "Admin user logged in for testing purposes. Remember to delete the /tests/ folder when done.", $modlog=true);
 
 header('Location: /');
