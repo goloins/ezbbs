@@ -215,6 +215,93 @@ function do_getTopics($page){
     return $stmt->get_result();
 }
 
+// thread checkers, simple boolean functions that check various thread states.
+
+function chk_ThreadPinned($topic_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT isPinned FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $topic_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['isPinned'];
+    } else {
+        return false; // or some default value
+    }
+}
+
+function chk_ThreadHidden($topic_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT isHidden FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $topic_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['isHidden'];
+    } else {
+        return false; // or some default value
+    }
+}
+
+function chk_ThreadLemoned($topic_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT isLemoned FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $topic_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['isLemoned'];
+    } else {
+        return false; // or some default value
+    }
+}
+
+function chk_ThreadParty($topic_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT isParty FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $topic_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['isParty'];
+    } else {
+        return false; // or some default value
+    }
+}
+
+function chk_ThreadArchived($topic_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT isArchived FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $topic_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['isArchived'];
+    } else {
+        return false; // or some default value
+    }
+}
+
+function chk_ThreadLocked($topic_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT isLocked FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $topic_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['isLocked'];
+    } else {
+        return false; // or some default value
+    }
+}
+
+
 $sampletopic = array(
     'id' => 1,
     'title' => 'Welcome to EzBBS!',
