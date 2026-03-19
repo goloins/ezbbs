@@ -844,6 +844,27 @@ function do_getPollWinnerWithPercentage($poll_id){
     return array('winner' => $winner['option'], 'percentage' => round($percentage, 2));
 }
 
+function do_getPollResultsAsciiBarChart($poll_id){
+    $poll = do_fetchPollById($poll_id);
+    $total_votes = do_getPollTotalVotes($poll_id);
+    if ($total_votes == 0) {
+        return null; // No votes cast
+    }
+    $options = array(
+        1 => array('option' => $poll['option_1'], 'votes' => $poll['votes_1']),
+        2 => array('option' => $poll['option_2'], 'votes' => $poll['votes_2']),
+        3 => array('option' => $poll['option_3'], 'votes' => $poll['votes_3']),
+        4 => array('option' => $poll['option_4'], 'votes' => $poll['votes_4']),
+        5 => array('option' => $poll['option_5'], 'votes' => $poll['votes_5']),
+    );
+    // Generate ASCII bar chart
+    foreach ($options as &$option) {
+        $percentage = ($option['votes'] / $total_votes) * 100;
+        $bar_length = round($percentage / 2); // Scale the bar length
+        $option['bar'] = str_repeat('#', $bar_length) . ' (' . round($percentage, 2) . '%)';
+    }
+    return $options; // returns options with ASCII bars
+}
 
 
 
