@@ -11,6 +11,8 @@ CREATE TABLE users (
     defaultavatar VARCHAR(255) DEFAULT 'assets/png/default_avatar.png',
     awards JSON DEFAULT '[]',
     isbanned BOOLEAN DEFAULT false,
+    ban_length INT DEFAULT 0, -- in seconds, 0 for permanent only if isbanned is true
+    ban_reason VARCHAR(255) DEFAULT '',
     ismoderator JSON DEFAULT '[]',
     defaultsignature TEXT DEFAULT '',
     sigbanners JSON DEFAULT '[]',

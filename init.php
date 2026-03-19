@@ -49,6 +49,8 @@ $user = array(
     'defaultavatar' => 'assets/png/default_avatar.png',
     'awards' => json_encode(array()), // Array of award ids in the awards table that the user has received
     'isbanned' => false, // default on new users, but once banned will show bars on the profile pic.
+    'ban_length' => 0, // in seconds, 0 for permanent only if isbanned is true
+    'ban_reason' => '', // Reason for the ban
     'ismoderator' => json_encode(array()), // Array of category ids that the user is a moderator of
     'defaultsignature' => "", 
     'sigbanners' => json_encode(array()), // Array of ids in the sigbanners table that the user has chosen to display in their signature
@@ -130,8 +132,8 @@ function do_insertNewUser($supplied_username, $supplied_password, $supplied_emai
     $hashed_password = password_hash($supplied_password, PASSWORD_DEFAULT);
     
     // Insert the new user into the database with default values
-    $stmt = $go_sql->prepare("INSERT INTO users (username, password, email, theme, isadmin, defaultlocation, defaultbio, defaultavatar, awards, isbanned, ismoderator, defaultsignature, sigbanners, userportrait, usernamecolor, usernamestyle, joindate, crackedportrait, duncecorner, userkudos, userkudostogive, userposts, userwebsite, usergemsite, userspacehey, userirchandleandnet, usersmsnescargot, profileprimarycolor, profilesecondarycolor, profileheadingtextcolor, profilelowerheadingcolor, profilehyperlinkcolor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssssssssssssssssssssssssss", $supplied_username, $hashed_password, $supplied_email, $user['theme'], $user['isadmin'], $user['defaultlocation'], $user['defaultbio'], $user['defaultavatar'], $user['awards'], $user['isbanned'], $user['ismoderator'], $user['defaultsignature'], $user['sigbanners'], $user['userportrait'], $user['usernamecolor'], $user['usernamestyle'], $user['joindate'], $user['crackedportrait'], $user['duncecorner'], $user['userkudos'], $user['userkudostogive'], $user['userposts'], $user['userwebsite'], $user['usergemsite'], $user['userspacehey'], $user['userirchandleandnet'], $user['usersmsnescargot'], $user['profileprimarycolor'], $user['profilesecondarycolor'], $user['profileheadingtextcolor'], $user['profilelowerheadingcolor'], $user['profilehyperlinkcolor']);
+    $stmt = $go_sql->prepare("INSERT INTO users (username, password, email, theme, isadmin, defaultlocation, defaultbio, defaultavatar, awards, isbanned, ban_length, ban_reason, ismoderator, defaultsignature, sigbanners, userportrait, usernamecolor, usernamestyle, joindate, crackedportrait, duncecorner, userkudos, userkudostogive, userposts, userwebsite, usergemsite, userspacehey, userirchandleandnet, usersmsnescargot, profileprimarycolor, profilesecondarycolor, profileheadingtextcolor, profilelowerheadingcolor, profilehyperlinkcolor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssssssssssssssssssssssssssss", $supplied_username, $hashed_password, $supplied_email, $user['theme'], $user['isadmin'], $user['defaultlocation'], $user['defaultbio'], $user['defaultavatar'], $user['awards'], $user['isbanned'], $user['ban_length'], $user['ban_reason'], $user['ismoderator'], $user['defaultsignature'], $user['sigbanners'], $user['userportrait'], $user['usernamecolor'], $user['usernamestyle'], $user['joindate'], $user['crackedportrait'], $user['duncecorner'], $user['userkudos'], $user['userkudostogive'], $user['userposts'], $user['userwebsite'], $user['usergemsite'], $user['userspacehey'], $user['userirchandleandnet'], $user['usersmsnescargot'], $user['profileprimarycolor'], $user['profilesecondarycolor'], $user['profileheadingtextcolor'], $user['profilelowerheadingcolor'], $user['profilehyperlinkcolor']);
     $stmt->execute();
     return true;
 
