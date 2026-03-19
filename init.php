@@ -15,6 +15,7 @@ $site = array(
     'site_url' => 'https://localhost/',
     'rss_url' => $site['site_url'] . 'rss.xml', //note: site_url/catname/rss.xml works for cat specific feeds.
     'default_lemon_years' => 2, //number of years before lemon threads can be replied to
+    'chanlike_reply_limit' => 100 //number of replies before chanlike threads are removed from the homepage and archived
     );
 
 //Site SQL defaults, change these to match your sql credentials.    
@@ -301,10 +302,25 @@ function chk_ThreadLocked($topic_id){
     }
 }
 
+function chk_ThreadChanlike($topic_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT isChanlike FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $topic_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['isChanlike'];
+    } else {
+        return false; // or some default value
+    }
+}
 
+//sample here to help inteli.
 $sampletopic = array(
     'id' => 1,
     'title' => 'Welcome to EzBBS!',
+    'content' => 'This is the first topic on EzBBS. Feel free to explore and join the discussion!',
     'poster_id' => 1,
     'category_id' => 1,
     'created_at' => time(),
@@ -318,7 +334,8 @@ $sampletopic = array(
     'isParty' => false, //special threads.
     'isArchived' => false,
     'isLocked' => false,
-    'isLemoned' => false, //a lemon party, for old users 
+    'isLemoned' => false, //a lemon party, for old users as defined in $site
+    'isChanlike' => false, //chanlike threads dissappear from the homepage after a certain number of replies and will be archived.
 
 
 
