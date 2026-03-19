@@ -23,6 +23,12 @@ if(!$profileUser) {
     exit();
 }
 
+//if it's the admin, send them to the admin page.
+if($userId == 1) {
+    header('Location: /admin');
+    exit();
+}
+
 //so we should now have all of the user info.
 
 ?>
