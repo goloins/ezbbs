@@ -70,9 +70,18 @@ foreach($homepagemenu as $menu_item) {
         }
         echo 'Profile for ' . $fullusername;
         //now to figure out where to put their awards
-        
+        //maybe create a div with class "user_awards" and then put the awards in there as img tags with title attributes for the tooltip?
+        //yeah we'll roll with that.
+        //todo: user_awards css should probably fix this box to a certain size and 
         ?>
-
+    <div class="user_awards">
+        <?php 
+        $awards = do_getAwardsByUserId($profileUser['id']);
+        while($award = $awards->fetch_assoc()) {
+            echo '<img src="' . $award['image_url'] . '" alt="' . $award['name'] . '" title="' . $award['description'] . '"/>';
+        }
+        ?>
+        </div>
 
 </h2>
 </div>
