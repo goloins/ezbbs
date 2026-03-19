@@ -117,7 +117,7 @@ $homepagemenu[] = array(
 global $homepagemenu;
 
 
-function determineCurrentPageorCat(){
+function do_determineCurrentPageorCat(){
     if(isset($_GET['url'])){
         $url = $_GET['url'];
         if(strpos($url, 'cat/') === 0){

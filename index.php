@@ -35,7 +35,7 @@ foreach($homepagemenu as $menu_item) {
 </div>
 <div id="body_wrapper">
     	<h2 id="body_title">
-		<?php echo determineCurrentPageorCat(); ?>	</h2>
+		<?php echo do_determineCurrentPageorCat(); ?>	</h2>
 
         <table><thead>
             <tr> <th class="headline">Headline</th> 
