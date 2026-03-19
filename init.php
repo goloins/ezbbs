@@ -19,7 +19,8 @@ $site = array(
     'topic_preview_length' => 20, //number of characters to show in the topic preview on the homepage and category pages.
     'topic_headline_length' => 50,
     'topic_poster_banned_prefix' => '<span class="help" title="USER WAS BANNED FOR THIS POST">[B]</span>',
-    'admin_suffix' => ' [<a href=/admin>A</a>]' //suffix for topics posted by admins
+    'admin_suffix' => ' [<a href=/admin>A</a>]', //suffix for topics posted by admins
+    'minimum_posts_for_outbound_links' => 5, //number of posts a user must have before they can post outbound links, to prevent spam.
     );
 
 //Site SQL defaults, change these to match your sql credentials.    
@@ -393,6 +394,70 @@ $samplereply = array(
 
 );
 
+
+function chk_DoesUserHaveKudosToGive($user_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT userkudostogive FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['userkudostogive'] > 0;
+    } else {
+        return false; // or some default value
+    }
+}
+
+// so to prevent some sort of spam, we're going to check for:
+// both links in the text of the post (naked) and links written with markdown ()[] style.
+// second we'll check if the user posting has the minimum posts to do such. 
+// we're return true/false based on if the post is allowed or not, and then we'll handle the error message in the thread/reply submission code.
+function chk_UserCanPostOutboundLinks($user_id, $post_content){
+    global $go_sql, $site;
+    // Check for markdown links
+    if(preg_match('/\[[^\]]+\]\((https?:\/\/[^\s]+)\)/', $post_content) || preg_match('/https?:\/\/[^\s]+/', $post_content)){
+        // User is trying to post a link, check if they have enough posts
+        $stmt = $go_sql->prepare("SELECT userposts FROM users WHERE id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            return $row['userposts'] >= $site['minimum_posts_for_outbound_links'];
+        } else {
+            return false; // or some default value
+        }
+    } else {
+        // No links detected, allow the post
+        return true;
+    }
+}
+
+function do_RenderMarkdownLinksInText($text){
+    //this will render markdown links in the text of the post, so that they show up as clickable links instead of just plain text. 
+    // This should be called when rendering the post content.
+    $text = preg_replace('/\[(.*?)\]\((https?:\/\/[^\s]+)\)/', '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>', $text);
+    return $text;
+}
+
+function do_RenderMarkdownFormattingInText($text){
+    //this will render markdown formatting in the text of the post, so that *bold* and _italic_ and ~strikethrough~ show up correctly. 
+    // This should be called when rendering the post content, after rendering links.
+    $text = preg_replace('/\*(.*?)\*/', '<strong>$1</strong>', $text); // bold
+    $text = preg_replace('/_(.*?)_/', '<em>$1</em>', $text); // italic
+    $text = preg_replace('/~(.*?)~/', '<del>$1</del>', $text); // strikethrough
+    return $text;
+}
+
+function do_RenderMarkdownCodeInText($text){
+    //this will render markdown code formatting in the text of the post, so that `code` shows up correctly. 
+    // This should be called when rendering the post content, after rendering links and formatting.
+    $text = preg_replace('/`(.*?)`/', '<code>$1</code>', $text); // code
+    return $text;
+}
+
+
 function do_RenderThreadLinkInReplyText($text){
     //replying to users is done with @username, but threads are referred to with ">>"
     //so if the text contains ">>" followed by a number, we'll assume it's a thread link.
@@ -458,6 +523,40 @@ function do_AddTooltipWithReplySnippet($reply_content, $reply_id){
         }, htmlspecialchars($reply_content));
     }
  
+}
+
+//time machine shit: this is where we'll make sure certain modernisms are turned off.
+//i.e. we need to convert the most common unicode emoji to their emoticon equivalents. we're 2003 in here.
+// for example "emoji heart (any color)" -> ":heart:" the emoji description should be used
+// and we'll surround it with ::'s so that in the future if we add old-school forum emotes,
+// we can just match them to an array of suitable images.
+
+function fun_EmojiTimeMachine($text){
+    // Implementation for converting unicode emoji to emoticons
+    // I'll probably need the entire list of emoji mappings and descriptions 
+    //to build this with.
+    return $text;
+}
+
+
+//main rendering functions
+function do_RenderTopicContent($topic_content){
+    //this will be the main function to call when rendering the topic text, it will call the other functions to render links, formatting, and add tooltips.
+    $topic_content = do_RenderMarkdownLinksInText($topic_content);
+    $topic_content = do_RenderMarkdownFormattingInText($topic_content);
+    $topic_content = do_RenderMarkdownCodeInText($topic_content);
+    return nl2br($topic_content); // convert newlines to <br> for HTML rendering
+}
+
+
+function do_RenderReplyText($reply_content, $reply_id){
+    //this will be the main function to call when rendering the reply text, it will call the other functions to render links, formatting, and add tooltips.
+    $reply_content = do_RenderMarkdownLinksInText($reply_content);
+    $reply_content = do_RenderMarkdownFormattingInText($reply_content);
+    $reply_content = do_RenderMarkdownCodeInText($reply_content);
+    $reply_content = do_RenderThreadLinkInReplyText($reply_content);
+    $reply_content = do_AddTooltipWithReplySnippet($reply_content, $reply_id);
+    return nl2br($reply_content); // convert newlines to <br> for HTML rendering
 }
 
 //i wonder if I should do polls as yet another array or an object.
