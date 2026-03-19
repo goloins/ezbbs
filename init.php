@@ -162,7 +162,7 @@ $homepagemenu[] = array(
     'Stuff' => '/stuff'
 );
 global $homepagemenu;
-
+global $categories;
 
 function do_determineCurrentPageorCat(){
     if(isset($_GET['url'])){
@@ -248,6 +248,30 @@ function do_fetchUserAttribute($user_id, $attribute) {
     }else{
         global $user;
         return $user[$attribute]; // or some default value
+    }
+}
+
+
+function do_getFullyFormattedUsername($user_id) {
+    global $go_sql, $site;
+    $stmt = $go_sql->prepare("SELECT username, usernamecolor, usernamestyle FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $formatted_username = htmlspecialchars($row['username']);
+        if ($row['usernamecolor']) {
+            $formatted_username = '<span style="color: ' . htmlspecialchars($row['usernamecolor']) . ';">' . $formatted_username . '</span>';
+        }
+        if ($row['usernamestyle'] == 'italic') {
+            $formatted_username = '<em>' . $formatted_username . '</em>';
+        } elseif ($row['usernamestyle'] == 'bold') {
+            $formatted_username = '<strong>' . $formatted_username . '</strong>';
+        }
+        return $formatted_username;
+    } else {
+        return '<strong>Unknown User</strong>'; // or some default value
     }
 }
 
@@ -399,10 +423,65 @@ $sampletopic = array(
     'hasFlairs' => json_encode(array(1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0)), //will all be set to zero on new threads. nb: if adding flairs, update here.
     'isShitpost' => false, // todo: shitpost detection. maybe it'll just be a toggle for mods, maybe we'll factor in a trolliness score on the user
     'hasPoll' => 0, // if the thread has a poll, this will be the poll id
+    'tags' => json_encode(array()), // array of user-submitted tags for the thread. think tumblr. 
 
 
 
 );
+
+function do_getAllThreadsInCategory($category_id, $page){
+    global $go_sql;
+    $topics_per_page = 20;
+    $offset = ($page - 1) * $topics_per_page;
+    $stmt = $go_sql->prepare("SELECT * FROM topics WHERE category_id = ? ORDER BY last_bump DESC LIMIT ?, ?");
+    $stmt->bind_param("iii", $category_id, $offset, $topics_per_page);
+    $stmt->execute();
+    return $stmt->get_result();
+}
+
+ //call this on init to generate the tag cloud data from the existing threads. 
+
+function do_generateTagCloudFromTopics($numberoftags, $minoccurrence){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT tags FROM topics");
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $tag_counts = array();
+    while($row = $result->fetch_assoc()){
+        $tags = json_decode($row['tags'], true);
+        if(is_array($tags)){
+            foreach($tags as $tag){
+                if(isset($tag_counts[$tag])){
+                    $tag_counts[$tag]++;
+                } else {
+                    $tag_counts[$tag] = 1;
+                }
+            }
+        }
+    }
+    // Filter out tags that don't meet the minimum occurrence threshold
+    $filtered_tags = array_filter($tag_counts, function($count) use ($minoccurrence) {
+        return $count >= $minoccurrence;
+    });
+    // Sort tags by occurrence count in descending order
+    arsort($filtered_tags);
+    // Return the top N tags
+    return array_slice($filtered_tags, 0, $numberoftags, true);
+}
+    
+
+
+
+//this one is going to be fun, it'll be used with the tag cloud and tag search.
+//it'll need to break apart the tags json array and search for the tag in there, then return all threads with that tag. fun!
+//the smart move will be just to pull the top 20. maybe we'll have a "more" or "random" option.
+function do_getAllThreadsInTag($tag){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT * FROM topics WHERE JSON_CONTAINS(tags, '\"' ? '\"') ORDER BY last_bump DESC LIMIT 20");
+    $stmt->bind_param("s", $tag);
+    $stmt->execute();
+    return $stmt->get_result();
+}
 
 function getThreadById($thread_id){
     global $go_sql;

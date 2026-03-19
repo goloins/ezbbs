@@ -166,7 +166,7 @@ h3 {
     overflow:auto;
 }
 
-.tripfag, .namefag{
+.admin, .nameduser{
     transition: color 2s;
 }
 

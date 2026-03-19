@@ -44,4 +44,20 @@ foreach($homepagemenu as $menu_item) {
 </ul>
 </div>
 <div id="body_wrapper">
-    	<h2 id="body_title"> 
+    <h2 id="body_title">
+		<span class="pre_topic">Topic:</span> <?php echo htmlspecialchars($thread['title']); ?>	</h2>
+<h3 class="c" id="topic_<?php echo $thread_id;?>">
+    <span class="joined help" title="This poster started the topic.">+</span><?php echo do_getFullyFormattedUsername($thread['poster_id']); ?>  — <strong><span class="help" title="<?php echo date('Y-m-d H:i:s \U\T\C — l \t\h\e jS \o\f F Y, g:i A', strtotime($thread['created_at'])); ?>"><?php fun_secondsToHumanReadable($thread['created_at']); ?></span> <span class="reply_id unimportant"><a href="/cat/<?php echo $thread['category_id']; ?>"><?php echo $categories[$thread['category_id']]['name']; ?></a></span></strong></h3> 
+    <div class="body"><?php echo do_RenderTopicContent($thread['body']); ?>
+    <ul class="menu"><li>
+<!-- fix these-->
+ <?php
+
+ /*
+        <a href="/compose_message/topic/68383">PM</a></li>
+        <li><a href="/forget_thread/68383" onclick="return submitDummyForm('/forget_thread/68383', 'id', 68383, 'Really forget this thread?');">Forget Thread</a></li>
+        <li><a href="/watch_topic/68383" onclick="return submitDummyForm('/watch_topic/68383', 'id', 68383, 'Add this topic to the watchlist?');">Watch</a></li>
+        <li><a href="/new_reply/68383/quote_topic" onclick="quickQuote('OP');return false;">Quote</a></li>
+        <li><a href="/new_reply/68383/cite_topic" onclick="quickCite('OP');return false;">Cite OP</a></li>
+        <li><a href="/trivia_for_topic/68383" class="help" title="18 replies">491 visits</a></li></ul></div><br />
+*/
