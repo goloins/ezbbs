@@ -357,10 +357,107 @@ $sampletopic = array(
     'isLemoned' => false, //a lemon party, for old users as defined in $site
     'isChanlike' => false, //chanlike threads dissappear from the homepage after a certain number of replies and will be archived.
     'hasFlairs' => json_encode(array(1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0)), //will all be set to zero on new threads. nb: if adding flairs, update here.
+    'isShitpost' => false, // todo: shitpost detection. maybe it'll just be a toggle for mods, maybe we'll factor in a trolliness score on the user
+    'hasPoll' => 0, // if the thread has a poll, this will be the poll id
 
 
 
 );
+
+
+//i wonder if I should do polls as yet another array or an object.
+/*
+poll scratch thinking area, ignore this
+
+could just be an array of the options with their votes. how to track per-user voting? maybe 
+a dedicated table? or could I just throw all the use ids into a json array. could make it truly anon
+by just storing user ids and the iterating the option they voted for in the same array. for example:
+poll = array(
+    'question' => 'What is your favorite color?',
+    'options' => array(
+        1 => array(
+            'option' => 'Red',
+            'votes' => 10
+        ),
+        2 => array(
+            'option' => 'Blue',
+            'votes' => 15
+        ),
+        3 => array(
+            'option' => 'Green',
+            'votes' => 5
+        )
+    ),
+    'voted' => json_encode(array(1, 2, 3)) // user_id, user_id, user_id. 
+);
+
+maybe we roll with this. 
+
+
+table: `polls`
+id (int, primary key)
+option_1 (varchar)
+option_2 (varchar)
+option_3 (varchar)
+option_4 (varchar)
+option_5 (varchar)
+votes_1 (int)
+votes_2 (int)
+votes_3 (int)
+votes_4 (int)
+votes_5 (int)
+voted (text) - json_encoded array of user ids that have voted in this poll,
+question (varchar)
+
+*/
+
+function do_pollvote($poll_id, $option_id, $user_id){
+    global $go_sql;
+    // First, we need to check if the user has already voted in this poll.
+    $stmt = $go_sql->prepare("SELECT voted FROM polls WHERE id = ?");
+    $stmt->bind_param("i", $poll_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $voted = json_decode($row['voted'], true);
+        if (in_array($user_id, $voted)) {
+            return false; // User has already voted
+        } else {
+            // User has not voted, so we can proceed with recording the vote.
+            $voted[] = $user_id; // Add the user to the voted array
+            $voted_json = json_encode($voted);
+            // Update the vote count for the selected option
+            $option_votes_column = 'votes_' . $option_id;
+            $stmt = $go_sql->prepare("UPDATE polls SET $option_votes_column = $option_votes_column + 1, voted = ? WHERE id = ?");
+            $stmt->bind_param("si", $voted_json, $poll_id);
+            $stmt->execute();
+            return true; // Vote recorded successfully
+    }
+}
+
+function do_checkIfUserVotedInPoll($poll_id, $user_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT voted FROM polls WHERE id = ?");
+    $stmt->bind_param("i", $poll_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $voted = json_decode($row['voted'], true);
+        return in_array($user_id, $voted);
+    } else {
+        return false; // or some default value
+    }
+}
+
+function do_fetchPollById($poll_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT * FROM polls WHERE id = ?");
+    $stmt->bind_param("i", $poll_id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc(); // array of poll info and votes
+}
 
 $samplePostFlairs = array("Funny" => 10, "Informative" => 5, "Insightful" => 3, "Hell nah" => 1, "Wut" => 4); 
 //this is just a sample to help intellisense, the actual flairs and their counts would be stored in the database and fetched as needed.
