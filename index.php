@@ -45,7 +45,28 @@ foreach($homepagemenu as $menu_item) {
             <th class="minimal last_bump_▼">Last bump ▼</th>
             <th class="minimal category">Category</th></tr></thead>
             <tbody><tr class="">
-            <?php $topics = get_topics('all');?>
+            <?php $topics = do_getTopics('all');?>
+            <?php
+            while($topic = $topics->fetch_assoc()) {
+
+                //prepare username flair and colors 
+                $poster = do_getUserById($topic['poster_id']);
+                $posterName = $poster['username'];
+                $posterProfileLink = '/user/' . $poster['id'];
+                $posterUsernameColor = isset($poster['usernamecolor']) ? $poster['usernamecolor'] : $user['usernamecolor'];
+                $posterUsernameStyle = isset($poster['usernamestyle']) ? $poster['usernamestyle'] : $user['usernamestyle'];
+                $posterisBanned = $poster['isbanned']; // adds a red strikethrough to their name and an * on either side
+                $posterKudos = $poster['userkudos']; // in parentheses next to their name
+                $posterIsAdmin = $poster['isadmin']; // adds a little [A] next to their name
+                $posterBio = $poster['defaultbio']; // in tooltip
+
+                //prep category info
+                $categoryName = isset($categories[$topic['category_id']]) ? $categories[$topic['category_id']] : 'Uncategorized';
+                $categoryLink = '/cat/' . $topic['category_id'];
+
+                
+                echo '<tr class="">';
+                ?>
                 <td class="topic_headline">
                     <a class="" title="Topic text preview in a tooltip" 
                     href="/topic/68467">Topic title, affected by poster conditions</a></td>

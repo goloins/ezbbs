@@ -169,6 +169,52 @@ $awards = array(
     ),
 );
 
+//topic and poster related functions
+
+// this fetches specific information about the poster
+
+function do_getUserById($user_id) {
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        return $result->fetch_assoc();
+    } else {
+        global $user;
+        $newser = $user;
+        $newser['username'] = 'Unknown User';
+        return $newser; // or some default value
+    }
+}
+
+function do_fetchUserAttribute($user_id, $attribute) {
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT $attribute FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row[$attribute];
+    }else{
+        global $user;
+        return $user[$attribute]; // or some default value
+    }
+}
+
+function do_getTopics($page){
+    global $go_sql;
+    $topics_per_page = 20;
+    $offset = ($page - 1) * $topics_per_page;
+    $stmt = $go_sql->prepare("SELECT * FROM topics ORDER BY last_bump DESC LIMIT ?, ?");
+    $stmt->bind_param("ii", $offset, $topics_per_page);
+    $stmt->execute();
+    return $stmt->get_result();
+}
+
+
 //slogan stuff. it changes on each page load, just for fun. you can add as many slogans as you want
 
 $slogans = array(
@@ -188,6 +234,10 @@ function fun_getslogan() {
     global $slogans;
     return $slogans[array_rand($slogans)];
 }
+
+
+//login flow. core functions and checks to determine login status
+
 
 $islogged = false;
 
