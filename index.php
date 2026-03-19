@@ -64,9 +64,13 @@ foreach($homepagemenu as $menu_item) {
                 $categoryName = isset($categories[$topic['category_id']]) ? $categories[$topic['category_id']] : 'Uncategorized';
                 $categoryLink = '/cat/' . $topic['category_id'];
 
-                
+                //checking thread conditions
+                $isLemoned = $topic['isLemoned']; //adds a lemon icon.
+                $isParty = chk_ThreadParty($topic['id']); //adds party hat
+                $isArchived = chk_ThreadArchived($topic['id']); //shows a tombstone and prevents replies
+                $isLocked = chk_ThreadLocked($topic['id']); //shows a lock icon and prevents replies
+                $isChanlike = chk_ThreadChanlike($topic['id']); //if under limit, shows fire icon. if over, hides.
 
-                
                 echo '<tr class="">';
                 ?>
                 <td class="topic_headline">
