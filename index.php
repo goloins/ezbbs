@@ -65,6 +65,8 @@ foreach($homepagemenu as $menu_item) {
                 $categoryLink = '/cat/' . $topic['category_id'];
 
                 
+
+                
                 echo '<tr class="">';
                 ?>
                 <td class="topic_headline">

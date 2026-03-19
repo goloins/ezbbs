@@ -14,6 +14,7 @@ $site = array(
     'favicon_url' => 'assets/favicon.ico',
     'site_url' => 'https://localhost/',
     'rss_url' => $site['site_url'] . 'rss.xml', //note: site_url/catname/rss.xml works for cat specific feeds.
+    'default_lemon_years' => 2, //number of years before lemon threads can be replied to
     );
 
 //Site SQL defaults, change these to match your sql credentials.    
@@ -214,6 +215,27 @@ function do_getTopics($page){
     return $stmt->get_result();
 }
 
+$sampletopic = array(
+    'id' => 1,
+    'title' => 'Welcome to EzBBS!',
+    'poster_id' => 1,
+    'category_id' => 1,
+    'created_at' => time(),
+    'last_bump' => time(),
+    'replies_count' => 0,
+    'visits_count' => 0,
+    'media' => json_encode(array()),
+    'attached_links' => json_encode(array()),
+    'isPinned' => false,
+    'isHidden' => false,
+    'isParty' => false, //special threads.
+    'isArchived' => false,
+    'isLocked' => false,
+    'isLemoned' => false, //a lemon party, for old users 
+
+
+
+);
 
 //slogan stuff. it changes on each page load, just for fun. you can add as many slogans as you want
 
