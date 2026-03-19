@@ -390,10 +390,40 @@ $samplereply = array(
     'attached_links' => json_encode(array()),
     'isShitpost' => false,
     'hasPoll' => 0, // if the reply has a poll, this will be the poll id
-    'isHidden' => false,
+    'isHidden' => false, //gotta figure out a way to render this, maybe a [H] tag and a [+]/[-] to see it.
+    'isModerator' => false, //togglable by mods, will add a [M] and style. equivalent of the cops showing up for a noise complaint
+    'contentSpoilered' => false, //if the content is spoilered, we'll render a different media until clicked on. prevents spoilers
+    'causedBan' => false //if the reply caused a ban. only triggered from mod tools used on that post. "UWBFTP", etc.
+
 
 );
+//meat and potatoes
+function post_Reply($thread_id, $poster_id, $content, $media = array(), $attached_links = array()){
+    global $go_sql;
+    $media_json = json_encode($media);
+    $links_json = json_encode($attached_links);
+    $stmt = $go_sql->prepare("INSERT INTO replies (thread_id, poster_id, content, media, attached_links) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("iisss", $thread_id, $poster_id, $content, $media_json, $links_json);
+    if($stmt->execute()){
+        // Update the replies count and last bump time in the topics table
+        $stmt = $go_sql->prepare("UPDATE topics SET replies_count = replies_count + 1, last_bump = ? WHERE id = ?");
+        $current_time = time();
+        $stmt->bind_param("ii", $current_time, $thread_id);
+        $stmt->execute();
+        return true;
+    } else {
+        return false;
+    }
+}
 
+function post_Topic($title, $content, $poster_id, $category_id, $media = array(), $attached_links = array()){
+    global $go_sql;
+    $media_json = json_encode($media);
+    $links_json = json_encode($attached_links);
+    $stmt = $go_sql->prepare("INSERT INTO topics (title, content, poster_id, category_id, media, attached_links) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssiiss", $title, $content, $poster_id, $category_id, $media_json, $links_json);
+    return $stmt->execute();
+}
 
 function chk_DoesUserHaveKudosToGive($user_id){
     global $go_sql;
