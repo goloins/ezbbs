@@ -3,7 +3,10 @@
  *
  * Copyleft 2026 by the ezbbs contributors
  * 
- * init.php - pretty much everything to do with the default configuration goes here.
+ * init.php - pretty much everything to do with everything goes here.
+ * 
+ * one day, I'd like to split this up into multiple files, but that
+ * day is not today. or tomorrow. or the next day. or the next. maybe the next.
  * 
  */
 
@@ -35,6 +38,7 @@ $sql = array(
 //sql area, woo woo - no touching! 
 $go_sql = new mysqli($sql['host'], $sql['username'], $sql['password'], $sql['database']); //change these to your sql credentials
 if ($go_sql->connect_error) {
+    do_logentry("Error", "Database connection failed: " . $go_sql->connect_error);
     die('womp womp, ezbbs died: ' . $go_sql->connect_error);
 }
 
