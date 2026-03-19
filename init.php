@@ -162,32 +162,32 @@ $awards = array(
     1 => array(
         'name' => 'First Post',
         'description' => 'Awarded for making your first post.',
-        'icon' => 'assets/png/awards/first_post.png'
+        positive => 'assets/png/awards/first_post.png'
     ),
     2 => array(
         'name' => 'Kudos',
         'description' => 'Awarded for receiving 15 kudos from other users.',
-        'icon' => 'assets/png/awards/kudos.png'
+        positive => 'assets/png/awards/kudos.png'
     ),
     3 => array(
         'name' => 'Veteran',
         'description' => 'Awarded for being a member for 1 year.',
-        'icon' => 'assets/png/awards/veteran.png'
+        positive => 'assets/png/awards/veteran.png'
     ),
     4 => array(
         'name' => 'Out on Good Behavior',
         'description' => 'Awarded for being unbanned after a tempban',
-        'icon' => 'assets/png/awards/out_on_good_behavior.png'
+        positive => 'assets/png/awards/out_on_good_behavior.png'
     ),
     5 => array(
         'name' => 'Crass Clown',
         'description' => 'Has been dunced by a moderator at least twice.',
-        'icon' => 'assets/png/awards/crass_clown.png'
+        positive => 'assets/png/awards/crass_clown.png'
     ),
     6 => array(
         'name' => 'Moneybags',
         'description' => 'Donated to the website, all you get is the monopoly guy.',
-        'icon' => 'assets/png/awards/moneybags.png'
+        positive => 'assets/png/awards/moneybags.png'
     ),
 );
 
@@ -356,10 +356,98 @@ $sampletopic = array(
     'isLocked' => false,
     'isLemoned' => false, //a lemon party, for old users as defined in $site
     'isChanlike' => false, //chanlike threads dissappear from the homepage after a certain number of replies and will be archived.
+    'hasFlairs' => json_encode(array()), //users can throw flairs/reacts on a post. can be synthesized ala slashdot.
 
 
 
 );
+
+$samplePostFlairs = array("Funny" => 10, "Informative" => 5, "Insightful" => 3, "Hell nah" => 1, "Wut" => 4); 
+//this is just a sample to help intellisense, the actual flairs and their counts would be stored in the database and fetched as needed.
+//the keys are the flair names, and the values are the counts of how many times that flair has been given to that post.
+//this is stored in $topic['hasFlairs'] as a json_encoded array of flair_id => count.
+
+function do_fetchFlairsbyNameforPost($thread_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT flair_id, COUNT(*) as count FROM post_flairs WHERE thread_id = ? GROUP BY flair_id");
+    $stmt->bind_param("i", $thread_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $flairs = array();
+    while($row = $result->fetch_assoc()) {
+        // Assuming you have a function to get flair name by id
+        $flair_name = do_getFlairNameById($row['flair_id']);
+        $flairs[$flair_name] = $row['count'];
+    }
+    return $flairs; // returns an array of flair_name => count for the given thread_id
+}
+
+// (emoji stars) "algorithm" (emoji stars)
+function do_getStandoutFlairsforPost($thread_id){
+    $flairs = do_fetchFlairsbyNameforPost($thread_id);
+    $standout_flairs = array();
+    $standout_value = 0;
+    // get an average of all flair counts to determine a threshold for standout flairs
+    // this will weight positive flairs more highly than negative flairs unless its overwhelmingly negative.   
+    $total_positive_flairs = 0;
+    $total_negative_flairs = 0;
+    foreach($flairs as $flair_name => $count) {
+        if(strpos($flair_name, 'Hell nah') !== false || strpos($flair_name, 'Wut') !== false) {
+            $total_negative_flairs += $count;
+        } else {
+            $total_positive_flairs += $count;
+        }
+    } 
+    if($total_positive_flairs > 0) {
+        $standout_value = $total_positive_flairs / count($flairs); // average positive flair count
+    } else {
+        $standout_value = 0;
+    }
+    if($total_negative_flairs > $total_positive_flairs) {
+        $standout_value = $total_negative_flairs / count($flairs); // if negative flairs outweigh positive, use average negative flair count as threshold
+    }
+
+
+    foreach($flairs as $flair_name => $count) {
+        if($count >= $standout_value) { // arbitrary threshold for standout flairs
+            $standout_flairs[$flair_name] = $count;
+        }
+    }
+    return array($standout_flairs, $standout_value); //we get the flair names, and their average score, slashdot style
+}
+
+
+$postFlairs = array(
+    1 => array(
+        'name' => 'Funny',
+        'description' => 'This post is funny.',
+        'positive' => true
+    ),
+    2 => array(
+        'name' => 'Informative',
+        'description' => 'This post is informative.',
+        'positive' => true
+    ),
+    3 => array(
+        'name' => 'Insightful',
+        'description' => 'This post is insightful.',
+        'positive' => true
+    ),  
+    
+    4 => array(
+        'name' => 'Hell nah',
+        'description' => 'I disagree with this post.',
+        'positive' => false
+    ),
+    5 => array(
+        'name' => 'Wut',
+        'description' => 'I am confused by this post.',
+        'positive' => false
+    ),
+);
+
+
+
 
 
 function do_getAwardsByUserId($user_id) {
