@@ -32,6 +32,10 @@ include('../init.php');
 $_SESSION['user_id'] = 1;
 $_SESSION['username'] = get_UserNameForID(1);
 $_SESSION['theme'] = $site['default_theme'];
+
+global $islogged;
+$islogged = true;
+
 do_setnotification(1, "feedback", array("message" => "You have been logged in as admin for testing purposes. Please delete the /tests/ folder when you are done testing.", $modlog=true));
 
 header('Location: /');

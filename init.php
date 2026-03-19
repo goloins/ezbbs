@@ -934,63 +934,6 @@ function fun_getslogan() {
 }
 
 
-//login flow. core functions and checks to determine login status
-
-
-$islogged = false;
-
-if(!isset($_SESSION)) {
-    session_start();
-}
-
-if(!isset($COOKIE['user_id'])) {
-    $_SESSION['user_id'] = null; // Set to null for guests
-    $_SESSION['isloggedin'] = false;
-}
-
-if(isset($_COOKIE['user_id']) && isset($_COOKIE['pw_hash'])){
-    $cookie_user_id = $_COOKIE['user_id'];
-    $cookie_pw_hash = $_COOKIE['pw_hash'];
-
-    // Fetch the user from the database
-    $stmt = $go_sql->prepare("SELECT id, password FROM users WHERE id = ?");
-    $stmt->bind_param("i", $cookie_user_id);
-    $stmt->execute();
-    $stmt->store_result();
-
-    if ($stmt->num_rows > 0) {
-        $stmt->bind_result($db_user_id, $db_password_hash);
-        $stmt->fetch();
-
-        // Verify the password hash from the cookie against the database hash
-        if (password_verify($cookie_pw_hash, $db_password_hash)) {
-            $_SESSION['user_id'] = $db_user_id; // Log the user in by setting the session user_id
-            $islogged = true;
-        } else {
-            // Invalid cookie, clear it
-            setcookie('user_id', '', time() - 3600);
-            setcookie('pw_hash', '', time() - 3600);
-        }
-    } else {
-        // User not found, clear the cookie
-        setcookie('user_id', '', time() - 3600);
-        setcookie('pw_hash', '', time() - 3600);
-    }
-}
-
-
-if($islogged){
-    $_SESSION['user'] = $user; // Populate defaults
-    $stmt = $go_sql->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $db_user_data = $result->fetch_assoc();
-        // Merge database user data with default user data
-        $_SESSION['user'] = array_merge($_SESSION['user'], $db_user_data);
-    }
-}
 
 $notifcategories = array(
     'feedback' => 'It Worked!',
@@ -1153,4 +1096,62 @@ function do_clearUserBanNotifs($user_id){
     $stmt = $go_sql->prepare("DELETE FROM notifications WHERE user_id = ? AND type = 'ban'");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
+}
+
+//login flow. core functions and checks to determine login status
+
+
+$islogged = false;
+
+if(!isset($_SESSION)) {
+    session_start();
+}
+
+if(!isset($COOKIE['user_id'])) {
+    $_SESSION['user_id'] = null; // Set to null for guests
+    $_SESSION['isloggedin'] = false;
+}
+
+if(isset($_COOKIE['user_id']) && isset($_COOKIE['pw_hash'])){
+    $cookie_user_id = $_COOKIE['user_id'];
+    $cookie_pw_hash = $_COOKIE['pw_hash'];
+
+    // Fetch the user from the database
+    $stmt = $go_sql->prepare("SELECT id, password FROM users WHERE id = ?");
+    $stmt->bind_param("i", $cookie_user_id);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $stmt->bind_result($db_user_id, $db_password_hash);
+        $stmt->fetch();
+
+        // Verify the password hash from the cookie against the database hash
+        if (password_verify($cookie_pw_hash, $db_password_hash)) {
+            $_SESSION['user_id'] = $db_user_id; // Log the user in by setting the session user_id
+            $islogged = true;
+        } else {
+            // Invalid cookie, clear it
+            setcookie('user_id', '', time() - 3600);
+            setcookie('pw_hash', '', time() - 3600);
+        }
+    } else {
+        // User not found, clear the cookie
+        setcookie('user_id', '', time() - 3600);
+        setcookie('pw_hash', '', time() - 3600);
+    }
+}
+
+
+if($islogged){
+    $_SESSION['user'] = $user; // Populate defaults
+    $stmt = $go_sql->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $db_user_data = $result->fetch_assoc();
+        // Merge database user data with default user data
+        $_SESSION['user'] = array_merge($_SESSION['user'], $db_user_data);
+    }
 }
