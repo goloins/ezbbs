@@ -34,7 +34,7 @@ foreach($homepagemenu as $menu_item) {
 </ul>
 </div>
 <div id="body_wrapper">
-    	<h2 id="body_title">
+    	<h2 id="body_title"> <!-- all above is universal header and menu, now we get to the page specific content. -->
 		<?php echo do_determineCurrentPageorCat(); ?>	</h2>
 
         <table><thead>
