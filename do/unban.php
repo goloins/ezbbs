@@ -5,8 +5,6 @@
  * 
  * /do/unban.php - 
  * a do-er for bringing back up the banhammer. sets user to unbanned and fires off a notifcation to the user about it. only accessible by mods and admins.
- * todo: htaccess rewrite rule for /do/unban/user_id/ban_length/ban_reason or something like that. would be cleaner than query params.
-
  */
 
 
