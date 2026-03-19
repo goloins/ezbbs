@@ -398,12 +398,25 @@ $samplereply = array(
 
 );
 //meat and potatoes
-function post_Reply($thread_id, $poster_id, $content, $media = array(), $attached_links = array()){
+function post_Reply($thread_id, $poster_id, $content, $media = array(), $attached_links = array(), $poll = 0){
     global $go_sql;
+    //check for presence of poll in content at post time, if there is a poll, we'll need to create the poll first and then link it to the reply.
+    if($poll > 0){
+        //create the poll and get the poll id
+        $stmt = $go_sql->prepare("INSERT INTO polls (thread_id, reply_id) VALUES (?, ?)");
+        $stmt->bind_param("ii", $thread_id, $poll);
+        if($stmt->execute()){
+            $poll_id = $stmt->insert_id;
+            //now we have the poll id, we can link it to the reply when we create the reply.
+        } else {
+            return false; //failed to create poll, so we can't create the reply.
+        }
+        
+    }
     $media_json = json_encode($media);
     $links_json = json_encode($attached_links);
-    $stmt = $go_sql->prepare("INSERT INTO replies (thread_id, poster_id, content, media, attached_links) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("iisss", $thread_id, $poster_id, $content, $media_json, $links_json);
+    $stmt = $go_sql->prepare("INSERT INTO replies (thread_id, poster_id, content, media, attached_links, poll_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("iisssii", $thread_id, $poster_id, $content, $media_json, $links_json, $poll);
     if($stmt->execute()){
         // Update the replies count and last bump time in the topics table
         $stmt = $go_sql->prepare("UPDATE topics SET replies_count = replies_count + 1, last_bump = ? WHERE id = ?");
@@ -418,10 +431,23 @@ function post_Reply($thread_id, $poster_id, $content, $media = array(), $attache
 
 function post_Topic($title, $content, $poster_id, $category_id, $media = array(), $attached_links = array()){
     global $go_sql;
+    //check for presence of poll in content at post time, if there is a poll, we'll need to create the poll first and then link it to the reply.
+    if($poll > 0){
+        //create the poll and get the poll id
+        $stmt = $go_sql->prepare("INSERT INTO polls (thread_id, reply_id) VALUES (?, ?)");
+        $stmt->bind_param("ii", $thread_id, $poll);
+        if($stmt->execute()){
+            $poll_id = $stmt->insert_id;
+            //now we have the poll id, we can link it to the reply when we create the reply.
+        } else {
+            return false; //failed to create poll, so we can't create the reply.
+        }
+        
+    }
     $media_json = json_encode($media);
     $links_json = json_encode($attached_links);
-    $stmt = $go_sql->prepare("INSERT INTO topics (title, content, poster_id, category_id, media, attached_links) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssiiss", $title, $content, $poster_id, $category_id, $media_json, $links_json);
+    $stmt = $go_sql->prepare("INSERT INTO topics (title, content, poster_id, category_id, media, attached_links, poll_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssiissi", $title, $content, $poster_id, $category_id, $media_json, $links_json, $poll);
     return $stmt->execute();
 }
 
