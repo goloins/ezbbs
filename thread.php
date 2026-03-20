@@ -47,7 +47,17 @@ foreach($homepagemenu as $menu_item) {
     <h2 id="body_title">
 		<span class="pre_topic">Topic:</span> <?php echo htmlspecialchars($thread['title']); ?>	</h2>
 <h3 class="c" id="topic_<?php echo $thread_id;?>">
-    <span class="joined help" title="This poster started the topic.">+</span><?php echo do_getFullyFormattedUsername($thread['poster_id']); ?>  — <strong><span class="help" title="<?php echo date('Y-m-d H:i:s \U\T\C — l \t\h\e jS \o\f F Y, g:i A', strtotime($thread['created_at'])); ?>"><?php fun_secondsToHumanReadable($thread['created_at']); ?></span> <span class="reply_id unimportant"><a href="/cat/<?php echo $thread['category_id']; ?>"><?php echo $categories[$thread['category_id']]['name']; ?></a></span></strong></h3> 
+    <span class="joined help" title="This poster started the topic.">+</span><?php echo do_getFullyFormattedUsername($thread['poster_id']); ?>  — <strong><span class="help" title="<?php echo date('Y-m-d H:i:s \U\T\C — l \t\h\e jS \o\f F Y, g:i A', strtotime($thread['created_at'])); ?>"><?php fun_secondsToHumanReadable($thread['created_at']); ?></span> <span class="reply_id unimportant"><a href="/cat/<?php echo $thread['category_id']; ?>"><?php echo $categories[$thread['category_id']]['name']; ?></a>
+<?php if(!chk_DoesPostHaveFlairYet($thread_id)){
+    echo 'No Consensus';} else {
+        $consensus = do_getStandoutFlairsForPost($thread_id);
+        $plmn = "+";
+        if($consensus['flair_count'] < 0) {
+            $plmn = "-";
+        }
+        echo $consensus['flair_name'] . ' (' . $plmn . $consensus['flair_count'] . ' )';
+}?>
+</span></strong></h3> 
     <div class="body"><?php echo do_RenderTopicContent($thread['body']); ?>
     <ul class="menu"><li>
 <!-- fix these-->
@@ -57,7 +67,18 @@ foreach($homepagemenu as $menu_item) {
         <a href="/compose_message/topic/68383">PM</a></li>
         <li><a href="/forget_thread/68383" onclick="return submitDummyForm('/forget_thread/68383', 'id', 68383, 'Really forget this thread?');">Forget Thread</a></li>
         <li><a href="/watch_topic/68383" onclick="return submitDummyForm('/watch_topic/68383', 'id', 68383, 'Add this topic to the watchlist?');">Watch</a></li>
-        <li><a href="/new_reply/68383/quote_topic" onclick="quickQuote('OP');return false;">Quote</a></li>
-        <li><a href="/new_reply/68383/cite_topic" onclick="quickCite('OP');return false;">Cite OP</a></li>
-        <li><a href="/trivia_for_topic/68383" class="help" title="18 replies">491 visits</a></li></ul></div><br />
-*/
+        <li><a href="/new_reply/68383/quote_topic" onclick="quickQuote('OP');return false;">Quote</a></li>*/
+        
+        //pop the sweet new reply window up for new replies
+        echo '<li><a href="/new_reply/' . $thread_id . '" onclick="window.open(this.href,\'targetWindow\',\'width=700px,height=700px\'); return false;">Reply</a></li>';
+
+
+//display all tags for the thread.
+        $gettags = json_decode($thread['tags'], true);
+        if(count($gettags) > 0) {
+            foreach($gettags as $tag) { 
+                echo '<li><a href="/tag/' . $tag . '" class="help" title="18 replies">#' . $tag . ' </a></li>';
+            }
+        }
+         ?>   
+            </ul></div><br />';

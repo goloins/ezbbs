@@ -429,6 +429,8 @@ $sampletopic = array(
 
 );
 
+
+
 function do_getAllThreadsInCategory($category_id, $page){
     global $go_sql;
     $topics_per_page = 20;
@@ -470,7 +472,19 @@ function do_generateTagCloudFromTopics($numberoftags, $minoccurrence){
 }
     
 
-
+function do_getAllTagsForThread($thread_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT tags FROM topics WHERE id = ?");
+    $stmt->bind_param("i", $thread_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return json_decode($row['tags'], true);
+    } else {
+        return array(); // or some default value
+    }
+}
 
 //this one is going to be fun, it'll be used with the tag cloud and tag search.
 //it'll need to break apart the tags json array and search for the tag in there, then return all threads with that tag. fun!
@@ -731,6 +745,8 @@ function fun_secondsToHumanReadable($seconds) {
 }
 
 
+
+
 //main rendering functions
 function do_RenderTopicContent($topic_content){
     //this will be the main function to call when rendering the topic text, it will call the other functions to render links, formatting, and add tooltips.
@@ -980,6 +996,22 @@ function do_fetchFlairsbyNameforPost($thread_id){
     }
     return $flairs; // returns an array of flair_name => count for the given thread_id
 }
+
+
+function chk_DoesPostHaveFlairYet($thread_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT COUNT(*) as count FROM post_flairs WHERE thread_id = ?");
+    $stmt->bind_param("i", $thread_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['count'] > 0; // returns true if there is at least one flair for the post
+    } else {
+        return false; // or some default value
+    }
+}
+
 
 // (emoji stars) "algorithm" (emoji stars)
 function do_getStandoutFlairsforPost($thread_id){
