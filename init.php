@@ -443,10 +443,6 @@ function do_getPostRevisionNoteHtml($is_edited, $edited_at, $owner_user_id = 0){
         return '';
     }
 
-    if($mode === 2) {
-        return '';
-    }
-
     $edited_at = intval($edited_at);
     if($edited_at <= 0) {
         $edited_at = time();
