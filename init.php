@@ -406,10 +406,40 @@ function do_isPostWithinEditWindow($created_at){
     return (time() - intval($created_at)) <= $window;
 }
 
+function do_renderRevisionTemplateText($template, $owner_user_id, $edited_at){
+    $owner_username = get_UserNameForID(intval($owner_user_id));
+    if($owner_username === '' || $owner_username === 'Unknown User') {
+        $owner_username = 'OP';
+    }
+
+    $display_username = $owner_username;
+    $display_time_ago = fun_timeAgo(intval($edited_at));
+    $display_time_full = date('Y-m-d H:i:s', intval($edited_at));
+
+    $msg = strtr($template, array(
+        '$username' => $display_username,
+        '$seconds' => $display_time_ago,
+        '$datetime' => $display_time_full
+    ));
+
+    // Backward compatibility for old %s-based templates.
+    if(strpos($msg, '%s') !== false) {
+        $msg = preg_replace('/%s/', $display_username, $msg, 1);
+        $msg = preg_replace('/%s/', $display_time_ago, $msg, 1);
+        $msg = preg_replace('/%s/', $display_time_full, $msg, 1);
+    }
+
+    return trim($msg);
+}
+
 function do_getPostRevisionNoteHtml($is_edited, $edited_at, $owner_user_id = 0){
     global $site;
     $mode = intval($is_edited);
     if($mode !== 1 && $mode !== 2) {
+        return '';
+    }
+
+    if($mode === 2) {
         return '';
     }
 
@@ -729,7 +759,7 @@ function do_getReplyById($reply_id){
 }
 
 function do_updateTopicPostContent($thread_id, $editor_id, $submitted_content, $mode = 'edit'){
-    global $go_sql;
+    global $go_sql, $site;
     $thread_id = intval($thread_id);
     $editor_id = intval($editor_id);
     $mode = ($mode === 'append') ? 'append' : 'edit';
@@ -748,6 +778,7 @@ function do_updateTopicPostContent($thread_id, $editor_id, $submitted_content, $
     }
 
     $current_content = isset($topic['content']) ? $topic['content'] : '';
+    $edited_at = time();
     if($mode === 'edit') {
         if(!do_isPostWithinEditWindow(intval($topic['created_at']))) {
             return false;
@@ -755,18 +786,21 @@ function do_updateTopicPostContent($thread_id, $editor_id, $submitted_content, $
         $new_content = $submitted_content;
         $edit_state = 1;
     } else {
-        $new_content = rtrim($current_content) . "\n\n---\n" . $submitted_content;
+        $append_prefix = do_renderRevisionTemplateText($site['append_text'], $editor_id, $edited_at);
+        if($append_prefix === '') {
+            $append_prefix = 'appended';
+        }
+        $new_content = rtrim($current_content) . "\n\n---\n" . $append_prefix . ":\n" . $submitted_content;
         $edit_state = 2;
     }
 
-    $edited_at = time();
     $stmt = $go_sql->prepare("UPDATE topics SET content = ?, is_edited = ?, edited_at = ? WHERE id = ?");
     $stmt->bind_param("siii", $new_content, $edit_state, $edited_at, $thread_id);
     return $stmt->execute();
 }
 
 function do_updateReplyPostContent($reply_id, $editor_id, $submitted_content, $mode = 'edit'){
-    global $go_sql;
+    global $go_sql, $site;
     $reply_id = intval($reply_id);
     $editor_id = intval($editor_id);
     $mode = ($mode === 'append') ? 'append' : 'edit';
@@ -785,6 +819,7 @@ function do_updateReplyPostContent($reply_id, $editor_id, $submitted_content, $m
     }
 
     $current_content = isset($reply['content']) ? $reply['content'] : '';
+    $edited_at = time();
     if($mode === 'edit') {
         if(!do_isPostWithinEditWindow(intval($reply['created_at']))) {
             return false;
@@ -792,11 +827,14 @@ function do_updateReplyPostContent($reply_id, $editor_id, $submitted_content, $m
         $new_content = $submitted_content;
         $edit_state = 1;
     } else {
-        $new_content = rtrim($current_content) . "\n\n---\n" . $submitted_content;
+        $append_prefix = do_renderRevisionTemplateText($site['append_text'], $editor_id, $edited_at);
+        if($append_prefix === '') {
+            $append_prefix = 'appended';
+        }
+        $new_content = rtrim($current_content) . "\n\n---\n" . $append_prefix . ":\n" . $submitted_content;
         $edit_state = 2;
     }
 
-    $edited_at = time();
     $stmt = $go_sql->prepare("UPDATE replies SET content = ?, is_edited = ?, edited_at = ? WHERE id = ?");
     $stmt->bind_param("siii", $new_content, $edit_state, $edited_at, $reply_id);
     return $stmt->execute();
