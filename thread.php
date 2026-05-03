@@ -169,7 +169,7 @@ foreach(do_getHomePageMenu() as $menu_item) {
                 echo '<div class="thread-post-main">';
                 echo '<h3 class="c">';
                 echo do_getFullyFormattedUsername($reply['poster_id']);
-                echo ' — <span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</span>';
+                echo ' replied about <span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</span>';
                 echo ' <span class="reply_id unimportant">#' . intval($reply['id']) . '</span>';
                 echo '</h3>';
                 echo '<div class="body">' . do_RenderReplyText($reply['content'], $reply['id']) . '</div>';
