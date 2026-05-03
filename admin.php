@@ -24,6 +24,7 @@ if(!chk_IsUserAdmin($_SESSION['user_id'])) {
     <h1 class="top_text" id="logo">
         <a rel="index" href="/" class="help_cursor" title="<?php echo fun_getslogan(); ?>"><?php echo $site['site_name']; ?></a>
     </h1>
+<?php echo do_renderLoginStatusChip(); ?>
 <ul id="main_menu" class="menu">
 <?php
 foreach(do_getHomePageMenu() as $menu_item) {

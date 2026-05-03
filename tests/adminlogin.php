@@ -32,6 +32,12 @@ include('../init.php');
 $_SESSION['user_id'] = 1;
 $_SESSION['username'] = get_UserNameForID(1);
 $_SESSION['theme'] = $site['default_theme'];
+$_SESSION['isloggedin'] = true;
+
+$admin_user = do_getUserById(1);
+if($admin_user) {
+	$_SESSION['user'] = array_merge($user, $admin_user);
+}
 
 global $islogged;
 $islogged = true;

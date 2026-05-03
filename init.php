@@ -218,6 +218,26 @@ function do_getHomePageMenu(){
     return $menu;
 }
 
+function do_renderLoginStatusChip(){
+    if(!isset($_SESSION['user_id']) || $_SESSION['user_id'] === null) {
+        return '';
+    }
+
+    $username = '';
+    if(isset($_SESSION['user']) && is_array($_SESSION['user']) && isset($_SESSION['user']['username'])) {
+        $username = $_SESSION['user']['username'];
+    }
+    if($username === '') {
+        $username = get_UserNameForID(intval($_SESSION['user_id']));
+    }
+
+    if($username === '' || $username === 'Unknown User') {
+        return '';
+    }
+
+    return '<div class="login_status_chip">Welcome, <a href="/user/' . intval($_SESSION['user_id']) . '">' . htmlspecialchars($username) . '</a></div>';
+}
+
 function do_determineCurrentPageorCat(){
     if(isset($_GET['url'])){
         $url = $_GET['url'];
@@ -1569,27 +1589,27 @@ function do_clearUserBanNotifs($user_id){
 
 function do_logout(){
     //this will log the user out by clearing their session and cookies.
-    if(!isset($_SESSION)) {
+    if(session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
+
     session_unset();
     session_destroy();
-    setcookie('user_id', '', time() - 3600);
-    setcookie('pw_hash', '', time() - 3600);
+    setcookie('user_id', '', time() - 3600, '/');
+    setcookie('pw_hash', '', time() - 3600, '/');
 }
 
 $islogged = false;
 
-if(!isset($_SESSION)) {
+if(session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-if(!isset($_COOKIE['user_id'])) {
-    $_SESSION['user_id'] = null; // Set to null for guests
-    $_SESSION['isloggedin'] = false;
+if(isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null) {
+    $islogged = true;
 }
 
-if(isset($_COOKIE['user_id']) && isset($_COOKIE['pw_hash'])){
+if(!$islogged && isset($_COOKIE['user_id']) && isset($_COOKIE['pw_hash'])){
     $cookie_user_id = $_COOKIE['user_id'];
     $cookie_pw_hash = $_COOKIE['pw_hash'];
 
@@ -1609,18 +1629,23 @@ if(isset($_COOKIE['user_id']) && isset($_COOKIE['pw_hash'])){
             $islogged = true;
         } else {
             // Invalid cookie, clear it
-            setcookie('user_id', '', time() - 3600);
-            setcookie('pw_hash', '', time() - 3600);
+            setcookie('user_id', '', time() - 3600, '/');
+            setcookie('pw_hash', '', time() - 3600, '/');
         }
     } else {
         // User not found, clear the cookie
-        setcookie('user_id', '', time() - 3600);
-        setcookie('pw_hash', '', time() - 3600);
+        setcookie('user_id', '', time() - 3600, '/');
+        setcookie('pw_hash', '', time() - 3600, '/');
     }
 }
 
+if(!$islogged) {
+    $_SESSION['user_id'] = null;
+    $_SESSION['isloggedin'] = false;
+}
 
 if($islogged){
+    $_SESSION['isloggedin'] = true;
     $_SESSION['user'] = $user; // Populate defaults
     $stmt = $go_sql->prepare("SELECT * FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
@@ -1630,5 +1655,13 @@ if($islogged){
         $db_user_data = $result->fetch_assoc();
         // Merge database user data with default user data
         $_SESSION['user'] = array_merge($_SESSION['user'], $db_user_data);
+    } else {
+        $_SESSION['user_id'] = null;
+        $_SESSION['isloggedin'] = false;
+        $islogged = false;
     }
+}
+
+if(isset($_SESSION['user']) && is_array($_SESSION['user'])) {
+    $user = array_merge($user, $_SESSION['user']);
 }
