@@ -794,7 +794,7 @@ function do_updateTopicPostContent($thread_id, $editor_id, $submitted_content, $
         if($append_prefix === '') {
             $append_prefix = 'appended';
         }
-        $new_content = rtrim($current_content) . "\n\n---\n" . $append_prefix . ":\n" . $submitted_content;
+        $new_content = rtrim($current_content) . "\n\n---\n" . $append_prefix . ": " . $submitted_content;
         $edit_state = 2;
     }
 
@@ -835,7 +835,7 @@ function do_updateReplyPostContent($reply_id, $editor_id, $submitted_content, $m
         if($append_prefix === '') {
             $append_prefix = 'appended';
         }
-        $new_content = rtrim($current_content) . "\n\n---\n" . $append_prefix . ":\n" . $submitted_content;
+        $new_content = rtrim($current_content) . "\n\n---\n" . $append_prefix . ": " . $submitted_content;
         $edit_state = 2;
     }
 
