@@ -1250,7 +1250,7 @@ function chk_DoesPostHaveFlairYet($thread_id){
 
 
 // (emoji stars) "algorithm" (emoji stars)
-function do_getStandoutFlairsforPost($thread_id){
+function do_getStandoutFlairListForPost($thread_id){
     $flairs = do_fetchFlairsbyNameforPost($thread_id);
     $standout_flairs = array();
     $standout_value = 0;
@@ -1284,7 +1284,7 @@ function do_getStandoutFlairsforPost($thread_id){
 
 // Canonical function name wrapper for thread page consensus display
 function do_getStandoutFlairsForPost($thread_id){
-    $standout_flairs = do_getStandoutFlairsforPost($thread_id);
+    $standout_flairs = do_getStandoutFlairListForPost($thread_id);
     if(empty($standout_flairs)) {
         return null; // no consensus
     }
