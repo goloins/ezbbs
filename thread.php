@@ -101,6 +101,12 @@ foreach(do_getHomePageMenu() as $menu_item) {
 		<span class="pre_topic">Topic:</span> <?php echo htmlspecialchars($thread['title']); ?></h2>
 
 <?php $topic_author = do_getUserById($thread['poster_id']); ?>
+<?php $current_user_id = do_getCurrentUserId(); ?>
+<?php $can_modify_topic = do_canUserModifyPost($thread['poster_id'], $current_user_id); ?>
+<?php $topic_edit_label = do_isPostWithinEditWindow($thread['created_at']) ? 'Edit' : 'Append'; ?>
+<?php $thread_flair_breakdown = do_getFlairBreakdownForPost($thread_id); ?>
+<?php $thread_user_flair_votes = do_isLoggedIn() ? do_getUserFlairVotesForThread($thread_id, $current_user_id) : array(); ?>
+<?php $thread_user_has_flair_vote = count($thread_user_flair_votes) > 0; ?>
     <div class="thread-post" id="topic_<?php echo $thread_id; ?>">
 <?php ezbbs_renderUserPanel($topic_author, $site); ?>
         <div class="thread-post-main">
@@ -122,12 +128,15 @@ foreach(do_getHomePageMenu() as $menu_item) {
             $plmn = '-';
         }
         echo ' | ' . htmlspecialchars($consensus['flair_name']) . ' (' . $plmn . intval(abs($consensus['flair_count'])) . ')';
+    } else {
+        echo ' | No Consensus';
     }
 } ?>
                 </span>
             </h3>
 
             <div class="body"><?php echo do_RenderTopicContent($thread['content']); ?>
+<?php echo do_getPostRevisionNoteHtml(isset($thread['is_edited']) ? $thread['is_edited'] : 0, isset($thread['edited_at']) ? $thread['edited_at'] : 0); ?>
                 <ul class="menu"><li><?php
         if(do_isLoggedIn()) {
             echo '<a href="/compose_message/topic/' . $thread_id . '">PM</a></li>';
@@ -139,6 +148,23 @@ foreach(do_getHomePageMenu() as $menu_item) {
             }
             echo '<li><a href="/new_reply/' . $thread_id . '/quote_topic">Quote</a></li>';
             echo '<li><a href="/new_reply/' . $thread_id . '" onclick="window.open(this.href,\'targetWindow\',\'width=700px,height=700px\'); return false;">Reply</a></li>';
+            if(intval($thread['poster_id']) !== intval($current_user_id)) {
+                foreach($thread_flair_breakdown as $flair_option) {
+                    $fid = intval($flair_option['flair_id']);
+                    $already_voted = isset($thread_user_flair_votes[$fid]);
+                    $vote_url = '/do/flair/' . $thread_id . '/' . $fid;
+                    $vote_label = htmlspecialchars($flair_option['name']) . ' (' . intval($flair_option['count']) . ')';
+                    if($already_voted || $thread_user_has_flair_vote) {
+                        $vote_title = $already_voted ? 'You voted this flair.' : 'You already voted a flair on this thread.';
+                        echo '<li><span title="' . $vote_title . '">' . $vote_label . '</span></li>';
+                    } else {
+                        echo '<li><a href="' . $vote_url . '" title="' . htmlspecialchars($flair_option['description']) . '">' . $vote_label . '</a></li>';
+                    }
+                }
+            }
+            if($can_modify_topic) {
+                echo '<li><a href="/edit_post/topic/' . $thread_id . '">' . $topic_edit_label . '</a></li>';
+            }
         } else {
             echo '<a href="/login?next=' . rawurlencode('/thread/' . $thread_id) . '">Login to reply</a></li>';
         }
@@ -164,15 +190,22 @@ foreach(do_getHomePageMenu() as $menu_item) {
         if($replies && $replies->num_rows > 0) {
             while($reply = $replies->fetch_assoc()) {
                 $reply_author = do_getUserById($reply['poster_id']);
+                $can_modify_reply = do_canUserModifyPost($reply['poster_id'], $current_user_id);
+                $reply_edit_label = do_isPostWithinEditWindow($reply['created_at']) ? 'Edit' : 'Append';
                 echo '<div class="thread-post reply" id="reply_' . intval($reply['id']) . '">';
                 ezbbs_renderUserPanel($reply_author, $site);
                 echo '<div class="thread-post-main">';
                 echo '<h3 class="c">';
                 echo do_getFullyFormattedUsername($reply['poster_id']);
-                echo ' replied about <b><span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</b></span>';
+                echo ' replied about <strong><span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</span></strong>';
                 echo ' <span class="reply_id unimportant">#' . intval($reply['id']) . '</span>';
                 echo '</h3>';
-                echo '<div class="body">' . do_RenderReplyText($reply['content'], $reply['id']) . '</div>';
+                echo '<div class="body">' . do_RenderReplyText($reply['content'], $reply['id']);
+                echo do_getPostRevisionNoteHtml(isset($reply['is_edited']) ? $reply['is_edited'] : 0, isset($reply['edited_at']) ? $reply['edited_at'] : 0);
+                if($can_modify_reply) {
+                    echo '<ul class="menu"><li><a href="/edit_post/reply/' . intval($reply['id']) . '">' . $reply_edit_label . '</a></li></ul>';
+                }
+                echo '</div>';
                 echo '</div>';
                 echo '</div>';
             }

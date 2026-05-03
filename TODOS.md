@@ -96,6 +96,10 @@ Scope guardrails:
   - Files: `init.php`, `thread.php`
   - Goal: Thread consensus label renders without runtime errors.
 
+- [x] Add post edit + append workflow with DB tracking.
+  - Files: `edit_post.php`, `thread.php`, `init.php`, `htaccess`, `db/topics.sql`, `db/replies.sql`, `db/post_edits.sql`
+  - Goal: Allow time-limited full edits, append-only fallback, and show metadata via `is_edited` state (`0/1/2`).
+
 ## P2 - Nice-to-have polish (only after P0/P1)
 
 - [x] Add simple `.user_awards` layout styles.

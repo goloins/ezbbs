@@ -24,6 +24,10 @@ $site = array(
     'topic_poster_banned_prefix' => '<span class="help" title="USER WAS BANNED FOR THIS POST">[B]</span>',
     'admin_suffix' => ' [<a href=/admin>A</a>]', //suffix for topics posted by admins
     'minimum_posts_for_outbound_links' => 5,
+    'edit_window_seconds' => 1800,
+    'edit_text' => 'edited %s',
+    'append_text' => 'appended %s',
+    'flair_consensus_min_votes' => 3,
     'disclaimer' => 'All trademarks and copyrights on this site are owned by their respective parties. All uploaded files and comments are the responsibility of their own posters.', //site disclaimer
     );
 
@@ -385,6 +389,47 @@ function chk_IsUserAdmin($user_id){
     return $u && !empty($u['isadmin']);
 }
 
+function do_canUserModifyPost($post_owner_id, $viewer_user_id){
+    $viewer_user_id = intval($viewer_user_id);
+    if($viewer_user_id <= 0) {
+        return false;
+    }
+    return intval($post_owner_id) === $viewer_user_id;
+}
+
+function do_isPostWithinEditWindow($created_at){
+    global $site;
+    $window = intval($site['edit_window_seconds']);
+    if($window <= 0) {
+        return false;
+    }
+    return (time() - intval($created_at)) <= $window;
+}
+
+function do_getPostRevisionNoteHtml($is_edited, $edited_at){
+    global $site;
+    $mode = intval($is_edited);
+    if($mode !== 1 && $mode !== 2) {
+        return '';
+    }
+
+    $edited_at = intval($edited_at);
+    if($edited_at <= 0) {
+        $edited_at = time();
+    }
+
+    $display_time_ago = htmlspecialchars(fun_timeAgo($edited_at));
+    $display_time_full = htmlspecialchars(date('Y-m-d H:i:s', $edited_at));
+
+    if($mode === 2) {
+        $msg = sprintf($site['append_text'], $display_time_ago, $display_time_full);
+    } else {
+        $msg = sprintf($site['edit_text'], $display_time_ago, $display_time_full);
+    }
+
+    return '<div class="unimportant post-revision-note"><span class="edited-indicator" title="edited/updated post" aria-hidden="true">*</span>' . $msg . '</div>';
+}
+
 
 function do_getFullyFormattedUsername($user_id) {
     global $go_sql, $site;
@@ -654,6 +699,92 @@ function getThreadById($thread_id){
 // canonical helper name used by page files.
 function do_getThreadById($thread_id){
     return getThreadById($thread_id);
+}
+
+function do_getReplyById($reply_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT * FROM replies WHERE id = ? LIMIT 1");
+    $stmt->bind_param("i", $reply_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if($result->num_rows > 0) {
+        return $result->fetch_assoc();
+    }
+    return null;
+}
+
+function do_updateTopicPostContent($thread_id, $editor_id, $submitted_content, $mode = 'edit'){
+    global $go_sql;
+    $thread_id = intval($thread_id);
+    $editor_id = intval($editor_id);
+    $mode = ($mode === 'append') ? 'append' : 'edit';
+
+    $topic = do_getThreadById($thread_id);
+    if(!$topic) {
+        return false;
+    }
+    if(!do_canUserModifyPost(intval($topic['poster_id']), $editor_id)) {
+        return false;
+    }
+
+    $submitted_content = trim($submitted_content);
+    if($submitted_content === '') {
+        return false;
+    }
+
+    $current_content = isset($topic['content']) ? $topic['content'] : '';
+    if($mode === 'edit') {
+        if(!do_isPostWithinEditWindow(intval($topic['created_at']))) {
+            return false;
+        }
+        $new_content = $submitted_content;
+        $edit_state = 1;
+    } else {
+        $new_content = rtrim($current_content) . "\n\n---\n" . $submitted_content;
+        $edit_state = 2;
+    }
+
+    $edited_at = time();
+    $stmt = $go_sql->prepare("UPDATE topics SET content = ?, is_edited = ?, edited_at = ? WHERE id = ?");
+    $stmt->bind_param("siii", $new_content, $edit_state, $edited_at, $thread_id);
+    return $stmt->execute();
+}
+
+function do_updateReplyPostContent($reply_id, $editor_id, $submitted_content, $mode = 'edit'){
+    global $go_sql;
+    $reply_id = intval($reply_id);
+    $editor_id = intval($editor_id);
+    $mode = ($mode === 'append') ? 'append' : 'edit';
+
+    $reply = do_getReplyById($reply_id);
+    if(!$reply) {
+        return false;
+    }
+    if(!do_canUserModifyPost(intval($reply['poster_id']), $editor_id)) {
+        return false;
+    }
+
+    $submitted_content = trim($submitted_content);
+    if($submitted_content === '') {
+        return false;
+    }
+
+    $current_content = isset($reply['content']) ? $reply['content'] : '';
+    if($mode === 'edit') {
+        if(!do_isPostWithinEditWindow(intval($reply['created_at']))) {
+            return false;
+        }
+        $new_content = $submitted_content;
+        $edit_state = 1;
+    } else {
+        $new_content = rtrim($current_content) . "\n\n---\n" . $submitted_content;
+        $edit_state = 2;
+    }
+
+    $edited_at = time();
+    $stmt = $go_sql->prepare("UPDATE replies SET content = ?, is_edited = ?, edited_at = ? WHERE id = ?");
+    $stmt->bind_param("siii", $new_content, $edit_state, $edited_at, $reply_id);
+    return $stmt->execute();
 }
 
 function do_getThreadOwnerId($thread_id){
@@ -1292,6 +1423,100 @@ function do_fetchFlairsbyNameforPost($thread_id){
     return $flairs; // returns an array of flair_name => count for the given thread_id
 }
 
+function do_getFlairCountsByIdForPost($thread_id){
+    global $go_sql, $postFlairs;
+    $thread_id = intval($thread_id);
+    $counts = array();
+    foreach($postFlairs as $flair_id => $meta) {
+        $counts[intval($flair_id)] = 0;
+    }
+
+    $stmt = $go_sql->prepare("SELECT flair_id, COUNT(*) as count FROM post_flairs WHERE thread_id = ? GROUP BY flair_id");
+    $stmt->bind_param("i", $thread_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while($row = $result->fetch_assoc()) {
+        $fid = intval($row['flair_id']);
+        if(isset($counts[$fid])) {
+            $counts[$fid] = intval($row['count']);
+        }
+    }
+
+    return $counts;
+}
+
+function do_getFlairBreakdownForPost($thread_id){
+    global $postFlairs;
+    $counts = do_getFlairCountsByIdForPost($thread_id);
+    $rows = array();
+    foreach($postFlairs as $flair_id => $meta) {
+        $fid = intval($flair_id);
+        $count = isset($counts[$fid]) ? intval($counts[$fid]) : 0;
+        $rows[] = array(
+            'flair_id' => $fid,
+            'name' => $meta['name'],
+            'description' => $meta['description'],
+            'positive' => !empty($meta['positive']),
+            'count' => $count
+        );
+    }
+    return $rows;
+}
+
+function do_getUserFlairVotesForThread($thread_id, $user_id){
+    global $go_sql;
+    $votes = array();
+    $thread_id = intval($thread_id);
+    $user_id = intval($user_id);
+    if($thread_id <= 0 || $user_id <= 0) {
+        return $votes;
+    }
+
+    $stmt = $go_sql->prepare("SELECT flair_id FROM post_flairs WHERE thread_id = ? AND user_id = ?");
+    $stmt->bind_param("ii", $thread_id, $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while($row = $result->fetch_assoc()) {
+        $votes[intval($row['flair_id'])] = true;
+    }
+    return $votes;
+}
+
+function do_voteFlairForThread($thread_id, $flair_id, $user_id){
+    global $go_sql, $postFlairs;
+    $thread_id = intval($thread_id);
+    $flair_id = intval($flair_id);
+    $user_id = intval($user_id);
+
+    if($thread_id <= 0 || $flair_id <= 0 || $user_id <= 0) {
+        return false;
+    }
+    if(!isset($postFlairs[$flair_id])) {
+        return false;
+    }
+
+    $thread = do_getThreadById($thread_id);
+    if(!$thread) {
+        return false;
+    }
+    if(intval($thread['poster_id']) === $user_id) {
+        return false;
+    }
+
+    $existing_stmt = $go_sql->prepare("SELECT id FROM post_flairs WHERE thread_id = ? AND user_id = ? LIMIT 1");
+    $existing_stmt->bind_param("ii", $thread_id, $user_id);
+    $existing_stmt->execute();
+    $existing_result = $existing_stmt->get_result();
+    if($existing_result->num_rows > 0) {
+        return false;
+    }
+
+    $created_at = time();
+    $stmt = $go_sql->prepare("INSERT INTO post_flairs (thread_id, flair_id, user_id, created_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE created_at = VALUES(created_at)");
+    $stmt->bind_param("iiii", $thread_id, $flair_id, $user_id, $created_at);
+    return $stmt->execute();
+}
+
 
 function chk_DoesPostHaveFlairYet($thread_id){
     global $go_sql;
@@ -1310,32 +1535,44 @@ function chk_DoesPostHaveFlairYet($thread_id){
 
 // (emoji stars) "algorithm" (emoji stars)
 function do_getStandoutFlairListForPost($thread_id){
-    $flairs = do_fetchFlairsbyNameforPost($thread_id);
+    global $postFlairs, $site;
+    $flairs = do_getFlairCountsByIdForPost($thread_id);
     $standout_flairs = array();
-    $standout_value = 0;
+    $standout_value = 1;
+    $total_votes = 0;
     // get an average of all flair counts to determine a threshold for standout flairs
     // this will weight positive flairs more highly than negative flairs unless its overwhelmingly negative.   
     $total_positive_flairs = 0;
     $total_negative_flairs = 0;
-    foreach($flairs as $flair_name => $count) {
-        if(strpos($flair_name, 'Hell nah') !== false || strpos($flair_name, 'Wut') !== false) {
+    foreach($flairs as $flair_id => $count) {
+        $count = intval($count);
+        $total_votes += $count;
+        $is_positive = isset($postFlairs[$flair_id]) ? !empty($postFlairs[$flair_id]['positive']) : true;
+        if(!$is_positive) {
             $total_negative_flairs += $count;
         } else {
             $total_positive_flairs += $count;
         }
-    } 
-    if($total_positive_flairs > 0) {
+    }
+
+    $min_votes = isset($site['flair_consensus_min_votes']) ? intval($site['flair_consensus_min_votes']) : 3;
+    if($total_votes < $min_votes) {
+        return array();
+    }
+
+    if(count($flairs) > 0 && $total_positive_flairs > 0) {
         $standout_value = $total_positive_flairs / count($flairs); // average positive flair count
-    } else {
-        $standout_value = 0;
     }
     if($total_negative_flairs > $total_positive_flairs) {
         $standout_value = $total_negative_flairs / count($flairs); // if negative flairs outweigh positive, use average negative flair count as threshold
     }
 
-    foreach($flairs as $flair_name => $count) {
+    foreach($flairs as $flair_id => $count) {
         if($count >= $standout_value) { // arbitrary threshold for standout flairs
-            $standout_flairs[$flair_name] = $count;
+            $flair_name = do_getFlairNameById($flair_id);
+            $is_positive = isset($postFlairs[$flair_id]) ? !empty($postFlairs[$flair_id]['positive']) : true;
+            $signed_count = $is_positive ? intval($count) : intval($count) * -1;
+            $standout_flairs[$flair_name] = $signed_count;
         }
     }
     return $standout_flairs; // return array of flair_name => count for all standout flairs

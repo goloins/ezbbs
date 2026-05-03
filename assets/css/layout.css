@@ -481,6 +481,16 @@ p.caption {
     text-shadow: 0 0 #989898;
 }
 
+.post-revision-note {
+    margin-top: 0.35em;
+}
+
+.post-revision-note .edited-indicator {
+    color: #b30000;
+    font-weight: 700;
+    margin-right: 0.25em;
+}
+
 a:hover,h2 a {
     text-decoration:none;
 }

@@ -27,6 +27,8 @@ CREATE TABLE topics (
     isShitpost TINYINT(1) NOT NULL DEFAULT 0,
     hasPoll INT UNSIGNED NOT NULL DEFAULT 0,
     tags JSON NOT NULL,
+    is_edited TINYINT(1) NOT NULL DEFAULT 0,
+    edited_at INT UNSIGNED NOT NULL DEFAULT 0,
 
     PRIMARY KEY (id),
     KEY idx_topics_last_bump (last_bump),
