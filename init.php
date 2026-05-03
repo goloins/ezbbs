@@ -25,8 +25,8 @@ $site = array(
     'admin_suffix' => ' [<a href=/admin>A</a>]', //suffix for topics posted by admins
     'minimum_posts_for_outbound_links' => 5,
     'edit_window_seconds' => 1800,
-    'edit_text' => 'edited %s',
-    'append_text' => 'appended %s',
+    'edit_text' => '$username edited this $seconds',
+    'append_text' => '$username appended this $seconds',
     'flair_consensus_min_votes' => 3,
     'disclaimer' => 'All trademarks and copyrights on this site are owned by their respective parties. All uploaded files and comments are the responsibility of their own posters.', //site disclaimer
     );
@@ -34,8 +34,8 @@ $site = array(
 //Site SQL defaults, change these to match your sql credentials.    
 $sql = array(
     'host' => 'localhost',
-    'username' => 'root',
-    'password' => '',
+    'username' => 'ezbbs',
+    'password' => 'password',
     'database' => 'ezbbs'
 );
 
@@ -406,7 +406,7 @@ function do_isPostWithinEditWindow($created_at){
     return (time() - intval($created_at)) <= $window;
 }
 
-function do_getPostRevisionNoteHtml($is_edited, $edited_at){
+function do_getPostRevisionNoteHtml($is_edited, $edited_at, $owner_user_id = 0){
     global $site;
     $mode = intval($is_edited);
     if($mode !== 1 && $mode !== 2) {
@@ -418,13 +418,28 @@ function do_getPostRevisionNoteHtml($is_edited, $edited_at){
         $edited_at = time();
     }
 
-    $display_time_ago = htmlspecialchars(fun_timeAgo($edited_at));
-    $display_time_full = htmlspecialchars(date('Y-m-d H:i:s', $edited_at));
+    $owner_username = get_UserNameForID(intval($owner_user_id));
+    if($owner_username === '' || $owner_username === 'Unknown User') {
+        $owner_username = 'OP';
+    }
 
-    if($mode === 2) {
-        $msg = sprintf($site['append_text'], $display_time_ago, $display_time_full);
-    } else {
-        $msg = sprintf($site['edit_text'], $display_time_ago, $display_time_full);
+    $display_username = htmlspecialchars($owner_username, ENT_QUOTES, 'UTF-8');
+    $display_time_ago = htmlspecialchars(fun_timeAgo($edited_at), ENT_QUOTES, 'UTF-8');
+    $display_time_full = htmlspecialchars(date('Y-m-d H:i:s', $edited_at), ENT_QUOTES, 'UTF-8');
+    $display_time_ago_with_hover = '<span class="help" title="' . $display_time_full . '">' . $display_time_ago . '</span>';
+
+    $template = ($mode === 2) ? $site['append_text'] : $site['edit_text'];
+    $msg = strtr($template, array(
+        '$username' => $display_username,
+        '$seconds' => $display_time_ago_with_hover,
+        '$datetime' => $display_time_full
+    ));
+
+    // Backward compatibility for old %s-based templates.
+    if(strpos($msg, '%s') !== false) {
+        $msg = preg_replace('/%s/', $display_username, $msg, 1);
+        $msg = preg_replace('/%s/', $display_time_ago_with_hover, $msg, 1);
+        $msg = preg_replace('/%s/', $display_time_full, $msg, 1);
     }
 
     return '<div class="unimportant post-revision-note"><span class="edited-indicator" title="edited/updated post" aria-hidden="true">*</span>' . $msg . '</div>';
@@ -977,12 +992,13 @@ function post_Reply($thread_id, $poster_id, $content, $media = array(), $attache
     $stmt = $go_sql->prepare("INSERT INTO replies (thread_id, poster_id, content, created_at, media, attached_links, poll_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("iisissi", $thread_id, $poster_id, $content, $created_at, $media_json, $links_json, $poll_id);
     if($stmt->execute()){
+        $new_reply_id = intval($go_sql->insert_id);
         // Update the replies count and last bump time in the topics table
         $stmt = $go_sql->prepare("UPDATE topics SET replies_count = replies_count + 1, last_bump = ? WHERE id = ?");
         $current_time = time();
         $stmt->bind_param("ii", $current_time, $thread_id);
         $stmt->execute();
-        return true;
+        return $new_reply_id;
     } else {
         return false;
     }

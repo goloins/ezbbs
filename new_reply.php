@@ -41,9 +41,10 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'You must be logged in to post a reply.';
     } else {
         // Attempt to post the reply
-        if(post_Reply($thread_id, $_SESSION['user_id'], $reply_content)) {
-            $success_message = 'Reply posted successfully!';
-            // Note: in production, would redirect back to thread after brief display
+        $new_reply_id = post_Reply($thread_id, $_SESSION['user_id'], $reply_content);
+        if($new_reply_id !== false) {
+            header('Location: /thread/' . $thread_id . '#reply_' . intval($new_reply_id));
+            exit();
         } else {
             $error_message = 'Failed to post reply. Please try again.';
         }

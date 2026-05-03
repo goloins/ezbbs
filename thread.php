@@ -136,7 +136,7 @@ foreach(do_getHomePageMenu() as $menu_item) {
             </h3>
 
             <div class="body"><?php echo do_RenderTopicContent($thread['content']); ?>
-<?php echo do_getPostRevisionNoteHtml(isset($thread['is_edited']) ? $thread['is_edited'] : 0, isset($thread['edited_at']) ? $thread['edited_at'] : 0); ?>
+<?php echo do_getPostRevisionNoteHtml(isset($thread['is_edited']) ? $thread['is_edited'] : 0, isset($thread['edited_at']) ? $thread['edited_at'] : 0, isset($thread['poster_id']) ? $thread['poster_id'] : 0); ?>
                 <ul class="menu"><li><?php
         if(do_isLoggedIn()) {
             echo '<a href="/compose_message/topic/' . $thread_id . '">PM</a></li>';
@@ -201,7 +201,7 @@ foreach(do_getHomePageMenu() as $menu_item) {
                 echo ' <span class="reply_id unimportant">#' . intval($reply['id']) . '</span>';
                 echo '</h3>';
                 echo '<div class="body">' . do_RenderReplyText($reply['content'], $reply['id']);
-                echo do_getPostRevisionNoteHtml(isset($reply['is_edited']) ? $reply['is_edited'] : 0, isset($reply['edited_at']) ? $reply['edited_at'] : 0);
+                echo do_getPostRevisionNoteHtml(isset($reply['is_edited']) ? $reply['is_edited'] : 0, isset($reply['edited_at']) ? $reply['edited_at'] : 0, isset($reply['poster_id']) ? $reply['poster_id'] : 0);
                 if($can_modify_reply) {
                     echo '<ul class="menu"><li><a href="/edit_post/reply/' . intval($reply['id']) . '">' . $reply_edit_label . '</a></li></ul>';
                 }
