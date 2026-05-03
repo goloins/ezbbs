@@ -25,8 +25,8 @@ $site = array(
     'admin_suffix' => ' [<a href=/admin>A</a>]', //suffix for topics posted by admins
     'minimum_posts_for_outbound_links' => 5,
     'edit_window_seconds' => 1800,
-    'edit_text' => '$username edited this $seconds',
-    'append_text' => '$username appended this $seconds',
+    'edit_text' => '$username fucked around with this post $seconds',
+    'append_text' => '$username remembered to add some shit they forgot $seconds',
     'flair_consensus_min_votes' => 3,
     'disclaimer' => 'All trademarks and copyrights on this site are owned by their respective parties. All uploaded files and comments are the responsibility of their own posters.', //site disclaimer
     );
