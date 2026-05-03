@@ -9,7 +9,8 @@ RewriteRule ^ - [L]
 
 # Homepage and menu/list pages.
 RewriteRule ^$ index.php [L,QSA]
-RewriteRule ^(hot_topics|topics|bumps|replies|new_topic|folks|search|stuff)/?$ index.php?url=$1 [L,QSA]
+RewriteRule ^new_topic/?$ new_topic.php [L,QSA]
+RewriteRule ^(hot_topics|topics|bumps|replies|folks|search|stuff)/?$ index.php?url=$1 [L,QSA]
 RewriteRule ^cat/([0-9]+)/?$ index.php?url=cat/$1 [L,QSA]
 RewriteRule ^tag/([^/]+)/?$ index.php?url=tag/$1&tag=$1 [L,QSA]
 
@@ -17,6 +18,7 @@ RewriteRule ^tag/([^/]+)/?$ index.php?url=tag/$1&tag=$1 [L,QSA]
 RewriteRule ^topic/([0-9]+)/?$ thread.php?id=$1 [L,QSA]
 RewriteRule ^thread/([0-9]+)/?$ thread.php?id=$1 [L,QSA]
 RewriteRule ^user/([0-9]+)/?$ user.php?id=$1 [L,QSA]
+RewriteRule ^admin/?$ admin.php [L,QSA]
 RewriteRule ^new_reply/([0-9]+)/?$ new_reply.php?id=$1 [L,QSA]
 RewriteRule ^new_reply/([0-9]+)/quote_topic/?$ new_reply.php?id=$1&quote_topic=1 [L,QSA]
 RewriteRule ^compose_message/topic/([0-9]+)/?$ compose_message.php?topic_id=$1 [L,QSA]
@@ -28,6 +30,8 @@ RewriteRule ^forget_thread/([0-9]+)/?$ do/forgetthread.php?id=$1 [L,QSA]
 # Existing do-style actions that are already emitted by the app.
 RewriteRule ^do/dismissnotif/([0-9]+)/?$ do/dismissnotif.php?id=$1 [L,QSA]
 RewriteRule ^do/logout/?$ do/logout.php [L,QSA]
+RewriteRule ^do/ban/([0-9]+)/([0-9]+)/([^/]+)/?$ do/ban.php?id=$1&length=$2&reason=$3 [L,QSA]
+RewriteRule ^do/unban/([0-9]+)/?$ do/unban.php?id=$1 [L,QSA]
 
 # Minimal friendly 404 targets used by existing redirects.
 RewriteRule ^404/(thread|user)/?$ 404.php?kind=$1 [L,QSA]

@@ -803,14 +803,14 @@ function post_Reply($thread_id, $poster_id, $content, $media = array(), $attache
     }
 }
 
-function post_Topic($title, $content, $poster_id, $category_id, $media = array(), $attached_links = array(), $poll = 0){
+function post_Topic($title, $content, $poster_id, $category_id, $media = array(), $attached_links = array(), $poll = 0, $tags = array()){
     global $go_sql;
     // For now, treat $poll as an existing poll id and store it directly on the topic.
     $poll_id = intval($poll);
     $media_json = json_encode($media);
     $links_json = json_encode($attached_links);
     $default_flairs = json_encode(array(1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0));
-    $default_tags = json_encode(array());
+    $default_tags = json_encode(is_array($tags) ? array_values($tags) : array());
     $current_time = time();
     $stmt = $go_sql->prepare("INSERT INTO topics (title, content, poster_id, category_id, created_at, last_bump, media, attached_links, hasPoll, hasFlairs, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("ssiiiississ", $title, $content, $poster_id, $category_id, $current_time, $current_time, $media_json, $links_json, $poll_id, $default_flairs, $default_tags);
