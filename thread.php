@@ -20,6 +20,58 @@ if(!$thread) {
     header('Location: /404/thread'); //specific 404 page for threads, so we can say "thread not found" instead of just "page not found"
     exit();
 }
+
+function ezbbs_pathOrDefault($path, $fallback){
+    $path = trim((string)$path);
+    if($path === '') {
+        return $fallback;
+    }
+    if(strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0 || strpos($path, '/') === 0) {
+        return $path;
+    }
+    return '/' . ltrim($path, '/');
+}
+
+function ezbbs_renderUserPanel($author, $site){
+    $author_id = intval($author['id']);
+    $avatar_url = ezbbs_pathOrDefault(isset($author['defaultavatar']) ? $author['defaultavatar'] : '', '/assets/png/default_avatar.png');
+    $portrait_url = ezbbs_pathOrDefault(isset($author['userportrait']) ? $author['userportrait'] : '', '/assets/png/blank_portrait.png');
+    $joined_at = isset($author['joindate']) ? intval($author['joindate']) : 0;
+
+    echo '<aside class="thread-user-panel">';
+    echo '<div class="thread-user-photo-stack">';
+    echo '<img class="thread-user-avatar" src="' . htmlspecialchars($avatar_url) . '" alt="user photo" />';
+    echo '<img class="thread-user-portrait" src="' . htmlspecialchars($portrait_url) . '" alt="user portrait overlay" />';
+    echo '</div>';
+
+    echo '<div class="thread-user-name">' . do_getFullyFormattedUsername($author_id);
+    if(!empty($author['isadmin'])) {
+        echo $site['admin_suffix'];
+    }
+    if(!empty($author['isbanned'])) {
+        echo ' <span class="unimportant">[banned]</span>';
+    }
+    echo '</div>';
+
+    echo '<ul class="thread-user-meta unimportant">';
+    if($joined_at > 0) {
+        echo '<li>Joined: ' . date('Y-m-d', $joined_at) . '</li>';
+    }
+    echo '<li>Posts: ' . intval(isset($author['userposts']) ? $author['userposts'] : 0) . '</li>';
+    echo '<li>Kudos: ' . intval(isset($author['userkudos']) ? $author['userkudos'] : 0) . '</li>';
+    if(isset($author['defaultlocation']) && trim($author['defaultlocation']) !== '') {
+        echo '<li>From: ' . htmlspecialchars($author['defaultlocation']) . '</li>';
+    }
+    if(isset($author['userwebsite']) && trim($author['userwebsite']) !== '') {
+        $website = trim($author['userwebsite']);
+        if(strpos($website, 'http://') !== 0 && strpos($website, 'https://') !== 0) {
+            $website = 'https://' . $website;
+        }
+        echo '<li><a href="' . htmlspecialchars($website) . '" target="_blank" rel="noopener noreferrer">website</a></li>';
+    }
+    echo '</ul>';
+    echo '</aside>';
+}
 ?>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" id="top">
 	<head>
@@ -46,21 +98,37 @@ foreach(do_getHomePageMenu() as $menu_item) {
 </div>
 <div id="body_wrapper">
     <h2 id="body_title">
-		<span class="pre_topic">Topic:</span> <?php echo htmlspecialchars($thread['title']); ?>	</h2>
-<h3 class="c" id="topic_<?php echo $thread_id;?>">
-    <span class="joined help" title="This poster started the topic.">+</span><?php echo do_getFullyFormattedUsername($thread['poster_id']); ?>  — <strong><span class="help" title="<?php echo date('Y-m-d H:i:s \U\T\C — l \t\h\e jS \o\f F Y, g:i A', $thread['created_at']); ?>"><?php echo fun_timeAgo($thread['created_at']); ?></span> <span class="reply_id unimportant"><a href="/cat/<?php echo $thread['category_id']; ?>"><?php echo $categories[$thread['category_id']]; ?></a>
-<?php if(!chk_DoesPostHaveFlairYet($thread_id)){
-    echo 'No Consensus';} else {
-        $consensus = do_getStandoutFlairsForPost($thread_id);
-        $plmn = "+";
-        if($consensus['flair_count'] < 0) {
-            $plmn = "-";
+		<span class="pre_topic">Topic:</span> <?php echo htmlspecialchars($thread['title']); ?></h2>
+
+<?php $topic_author = do_getUserById($thread['poster_id']); ?>
+    <div class="thread-post" id="topic_<?php echo $thread_id; ?>">
+<?php ezbbs_renderUserPanel($topic_author, $site); ?>
+        <div class="thread-post-main">
+            <h3 class="c">
+                <span class="joined help" title="This poster started the topic.">+</span>
+                <?php echo do_getFullyFormattedUsername($thread['poster_id']); ?>
+                <strong>
+                    <span class="help" title="<?php echo date('Y-m-d H:i:s \U\T\C — l \t\h\e jS \o\f F Y, g:i A', $thread['created_at']); ?>"><?php echo fun_timeAgo($thread['created_at']); ?></span>
+                </strong>
+                <span class="reply_id unimportant">
+                    <a href="/cat/<?php echo intval($thread['category_id']); ?>"><?php echo htmlspecialchars($categories[$thread['category_id']]); ?></a>
+<?php if(!chk_DoesPostHaveFlairYet($thread_id)) {
+    echo ' | No Consensus';
+} else {
+    $consensus = do_getStandoutFlairsForPost($thread_id);
+    if($consensus && isset($consensus['flair_name'])) {
+        $plmn = '+';
+        if(intval($consensus['flair_count']) < 0) {
+            $plmn = '-';
         }
-        echo $consensus['flair_name'] . ' (' . $plmn . $consensus['flair_count'] . ' )';
-}?>
-</span></strong></h3> 
-    <div class="body"><?php echo do_RenderTopicContent($thread['content']); ?>
-    <ul class="menu"><li><?php
+        echo ' | ' . htmlspecialchars($consensus['flair_name']) . ' (' . $plmn . intval(abs($consensus['flair_count'])) . ')';
+    }
+} ?>
+                </span>
+            </h3>
+
+            <div class="body"><?php echo do_RenderTopicContent($thread['content']); ?>
+                <ul class="menu"><li><?php
         if(do_isLoggedIn()) {
             echo '<a href="/compose_message/topic/' . $thread_id . '">PM</a></li>';
             $is_watched = chk_IsThreadWatchedByUser(do_getCurrentUserId(), $thread_id);
@@ -84,7 +152,9 @@ foreach(do_getHomePageMenu() as $menu_item) {
             }
         }
         ?>   
-            </ul>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <!-- Replies section -->
@@ -94,13 +164,19 @@ foreach(do_getHomePageMenu() as $menu_item) {
         $replies = do_getRepliesForThread($thread_id);
         if($replies && $replies->num_rows > 0) {
             while($reply = $replies->fetch_assoc()) {
-                echo '<div class="reply" id="reply_' . intval($reply['id']) . '">';
+                $reply_author = do_getUserById($reply['poster_id']);
+                echo '<div class="thread-post reply" id="reply_' . intval($reply['id']) . '">';
+                ob_start();
+                ezbbs_renderUserPanel($reply_author, $site);
+                echo ob_get_clean();
+                echo '<div class="thread-post-main">';
                 echo '<h4 class="c">';
                 echo do_getFullyFormattedUsername($reply['poster_id']);
                 echo ' — <span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</span>';
                 echo ' <span class="reply_id unimportant">#' . intval($reply['id']) . '</span>';
                 echo '</h4>';
                 echo '<div class="body">' . do_RenderReplyText($reply['content'], $reply['id']) . '</div>';
+                echo '</div>';
                 echo '</div>';
             }
         } else {

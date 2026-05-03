@@ -24,6 +24,71 @@ body {
     font-weight: 700;
 }
 
+.thread-post {
+    display: flex;
+    gap: 0.75em;
+    align-items: flex-start;
+    margin-bottom: 0.9em;
+}
+
+.thread-post-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.thread-user-panel {
+    width: 165px;
+    flex: 0 0 165px;
+}
+
+.thread-user-photo-stack {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    margin-bottom: 0.45em;
+}
+
+.thread-user-avatar,
+.thread-user-portrait {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border: 1px solid #777;
+}
+
+.thread-user-portrait {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+}
+
+.thread-user-name {
+    font-weight: 700;
+    margin-bottom: 0.3em;
+}
+
+.thread-user-meta {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.thread-user-meta li {
+    margin-bottom: 0.25em;
+}
+
+@media (max-width: 780px) {
+    .thread-post {
+        display: block;
+    }
+
+    .thread-user-panel {
+        width: auto;
+        margin-bottom: 0.6em;
+    }
+}
+
 :focus {
     outline: none;
 }
