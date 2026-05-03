@@ -164,16 +164,14 @@ foreach(do_getHomePageMenu() as $menu_item) {
         if($replies && $replies->num_rows > 0) {
             while($reply = $replies->fetch_assoc()) {
                 $reply_author = do_getUserById($reply['poster_id']);
-                echo '<h3><div class="thread-post reply" id="reply_' . intval($reply['id']) . '"></h3>';
-                ob_start();
+                echo '<div class="thread-post reply" id="reply_' . intval($reply['id']) . '">';
                 ezbbs_renderUserPanel($reply_author, $site);
-                echo ob_get_clean();
                 echo '<div class="thread-post-main">';
-                echo '<h4 class="c">';
+                echo '<h3 class="c">';
                 echo do_getFullyFormattedUsername($reply['poster_id']);
                 echo ' — <span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</span>';
                 echo ' <span class="reply_id unimportant">#' . intval($reply['id']) . '</span>';
-                echo '</h4>';
+                echo '</h3>';
                 echo '<div class="body">' . do_RenderReplyText($reply['content'], $reply['id']) . '</div>';
                 echo '</div>';
                 echo '</div>';
