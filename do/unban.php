@@ -10,15 +10,30 @@
 
 include('../init.php');
 
+if(!isset($_SESSION['user_id']) || $_SESSION['user_id'] === null) {
+	http_response_code(403);
+	die('ezbbs error: you must be logged in.');
+}
+
+if(!chk_IsUserModeratorOrAdmin($_SESSION['user_id'])) {
+	http_response_code(403);
+	die('ezbbs error: moderator privileges required.');
+}
+
 
 $userid = intval($_GET['id']);
 $banlength = intval($_GET['length']);
 $banreason = trim($_GET['reason']);
 
+if($userid <= 0) {
+	http_response_code(400);
+	die('ezbbs error: invalid unban request.');
+}
+
 $moderatorId = $_SESSION['user_id'];
 
 //do the thing or die trying.
-do_setuserbanned($userid, $banlength, $banreason) or die('ezbbs error: failed to ban user. tell admin to check the logs.');
+do_setuserunbanned($userid) or die('ezbbs error: failed to unban user. tell admin to check the logs.');
 
 //write a modlog about it
 do_logentry("Notice", "User ".$userid." was unbanned by moderator ".$moderatorId, $modlog=true);
@@ -29,5 +44,6 @@ do_sendnotification($moderatorId, "feedback", array("message" => "You have succe
 // a good place to add logging for moderation purposes is here in a 'do' file since
 // most user simple actions are going to be handled by one of these style files.
 
-header('Location: ' . $_SERVER['HTTP_REFERER']);
+$return_to = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '/';
+header('Location: ' . $return_to);
 

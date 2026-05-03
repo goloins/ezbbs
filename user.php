@@ -49,7 +49,7 @@ if($userId == 1) {
 		<a rel="index" href="/" class="help_cursor" title="<?php echo fun_getslogan();?>"><?php echo $site['site_name'];?></a></h1>
 <ul id="main_menu" class="menu">
 <?php 
-foreach($homepagemenu as $menu_item) {
+foreach(do_getHomePageMenu() as $menu_item) {
     echo '<li><a href="' . $menu_item['url'] . '">' . $menu_item['name'] . '</a></li>';
 }
 ?>
@@ -83,7 +83,7 @@ foreach($homepagemenu as $menu_item) {
     <div class="user_awards">
         <?php 
         $awards = do_getAwardsByUserId($profileUser['id']);
-        while($award = $awards->fetch_assoc()) {
+        foreach($awards as $award) {
             echo '<img src="' . $award['image_url'] . '" alt="' . $award['name'] . '" title="' . $award['description'] . '"/>';
         }
         ?>

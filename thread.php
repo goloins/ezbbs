@@ -37,7 +37,7 @@ if(!$thread) {
 		<a rel="index" href="/" class="help_cursor" title="<?php echo fun_getslogan();?>"><?php echo $site['site_name'];?></a></h1>
 <ul id="main_menu" class="menu">
 <?php 
-foreach($homepagemenu as $menu_item) {
+foreach(do_getHomePageMenu() as $menu_item) {
     echo '<li><a href="' . $menu_item['url'] . '">' . $menu_item['name'] . '</a></li>';
 }
 ?>
@@ -47,7 +47,7 @@ foreach($homepagemenu as $menu_item) {
     <h2 id="body_title">
 		<span class="pre_topic">Topic:</span> <?php echo htmlspecialchars($thread['title']); ?>	</h2>
 <h3 class="c" id="topic_<?php echo $thread_id;?>">
-    <span class="joined help" title="This poster started the topic.">+</span><?php echo do_getFullyFormattedUsername($thread['poster_id']); ?>  — <strong><span class="help" title="<?php echo date('Y-m-d H:i:s \U\T\C — l \t\h\e jS \o\f F Y, g:i A', strtotime($thread['created_at'])); ?>"><?php fun_secondsToHumanReadable($thread['created_at']); ?></span> <span class="reply_id unimportant"><a href="/cat/<?php echo $thread['category_id']; ?>"><?php echo $categories[$thread['category_id']]['name']; ?></a>
+    <span class="joined help" title="This poster started the topic.">+</span><?php echo do_getFullyFormattedUsername($thread['poster_id']); ?>  — <strong><span class="help" title="<?php echo date('Y-m-d H:i:s \U\T\C — l \t\h\e jS \o\f F Y, g:i A', $thread['created_at']); ?>"><?php echo fun_timeAgo($thread['created_at']); ?></span> <span class="reply_id unimportant"><a href="/cat/<?php echo $thread['category_id']; ?>"><?php echo $categories[$thread['category_id']]; ?></a>
 <?php if(!chk_DoesPostHaveFlairYet($thread_id)){
     echo 'No Consensus';} else {
         $consensus = do_getStandoutFlairsForPost($thread_id);
@@ -58,27 +58,68 @@ foreach($homepagemenu as $menu_item) {
         echo $consensus['flair_name'] . ' (' . $plmn . $consensus['flair_count'] . ' )';
 }?>
 </span></strong></h3> 
-    <div class="body"><?php echo do_RenderTopicContent($thread['body']); ?>
-    <ul class="menu"><li>
-<!-- fix these-->
- <?php
+    <div class="body"><?php echo do_RenderTopicContent($thread['content']); ?>
+    <ul class="menu"><li><?php
+        echo '<a href="/compose_message/topic/' . $thread_id . '">PM</a></li>';
 
- /*
-        <a href="/compose_message/topic/68383">PM</a></li>
-        <li><a href="/forget_thread/68383" onclick="return submitDummyForm('/forget_thread/68383', 'id', 68383, 'Really forget this thread?');">Forget Thread</a></li>
-        <li><a href="/watch_topic/68383" onclick="return submitDummyForm('/watch_topic/68383', 'id', 68383, 'Add this topic to the watchlist?');">Watch</a></li>
-        <li><a href="/new_reply/68383/quote_topic" onclick="quickQuote('OP');return false;">Quote</a></li>*/
-        
-        //pop the sweet new reply window up for new replies
+        if(isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null) {
+            $is_watched = chk_IsThreadWatchedByUser($_SESSION['user_id'], $thread_id);
+            if($is_watched) {
+                echo '<li><a href="/forget_thread/' . $thread_id . '">Forget Thread</a></li>';
+            } else {
+                echo '<li><a href="/watch_topic/' . $thread_id . '">Watch</a></li>';
+            }
+        }
+
+        echo '<li><a href="/new_reply/' . $thread_id . '/quote_topic">Quote</a></li>';
         echo '<li><a href="/new_reply/' . $thread_id . '" onclick="window.open(this.href,\'targetWindow\',\'width=700px,height=700px\'); return false;">Reply</a></li>';
 
 
 //display all tags for the thread.
         $gettags = json_decode($thread['tags'], true);
-        if(count($gettags) > 0) {
+        if(is_array($gettags) && count($gettags) > 0) {
             foreach($gettags as $tag) { 
                 echo '<li><a href="/tag/' . $tag . '" class="help" title="18 replies">#' . $tag . ' </a></li>';
             }
         }
-         ?>   
-            </ul></div><br />';
+        ?>   
+            </ul>
+    </div>
+
+    <!-- Replies section -->
+    <div id="replies">
+        <h3>Replies</h3>
+        <?php
+        $replies = do_getRepliesForThread($thread_id);
+        if($replies && $replies->num_rows > 0) {
+            while($reply = $replies->fetch_assoc()) {
+                echo '<div class="reply" id="reply_' . intval($reply['id']) . '">';
+                echo '<h4 class="c">';
+                echo do_getFullyFormattedUsername($reply['poster_id']);
+                echo ' — <span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</span>';
+                echo ' <span class="reply_id unimportant">#' . intval($reply['id']) . '</span>';
+                echo '</h4>';
+                echo '<div class="body">' . do_RenderReplyText($reply['content'], $reply['id']) . '</div>';
+                echo '</div>';
+            }
+        } else {
+            echo '<p class="unimportant">No replies yet.</p>';
+        }
+        ?>
+    </div>
+
+    <div class="reply-action">
+        <a href="/new_reply/<?php echo $thread_id; ?>" class="button">Reply to this thread</a>
+    </div>
+
+</div><!-- body_wrapper -->
+
+<div id="footer">
+    <br/><div style="text-align:center" class="unimportant">
+        <span><?php echo $site['disclaimer']; ?></span><br/><span>ezbbs, bby. <a href="https://github.com/goloins/ezbbs">Contribute on GitHub or get your own copy!</a></span></div><br/>
+        <noscript><br /><span class="unimportant">Note: Your browser's JavaScript is disabled; some site features may not fully function, but don't worry, we're trying to get rid of all the js :^)</span></noscript>
+    <div id="quotePreview"></div>
+</div>
+
+</body>
+</html>

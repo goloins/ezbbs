@@ -176,6 +176,23 @@ h3 {
     vertical-align:middle;
 }
 
+.user_awards {
+    display: inline-block;
+    border: 1px solid #ccc;
+    padding: 0.5em;
+    margin: 0.5em 0;
+    max-width: 400px;
+    background-color: #f9f9f9;
+}
+
+.user_awards img {
+    display: inline-block;
+    margin: 0.25em;
+    max-width: 48px;
+    max-height: 48px;
+    border-radius: 4px;
+}
+
 h4.section {
     font-size:15px;
     margin-bottom:7px;
@@ -268,6 +285,14 @@ ul.stuff {
 
 ul.stuff li {
     margin-bottom:.5em;
+}
+
+.inbox-conversation.unread {
+    background-color: rgba(255, 229, 153, 0.25);
+}
+
+.inbox-conversation.unread a {
+    font-weight: 700;
 }
 
 table {

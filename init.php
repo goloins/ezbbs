@@ -16,7 +16,7 @@ $site = array(
     'site_description' => 'A simple bbs engine for the small web',
     'favicon_url' => 'assets/favicon.ico',
     'site_url' => 'https://localhost/',
-    'rss_url' => $site['site_url'] . 'rss.xml', //note: site_url/catname/rss.xml works for cat specific feeds.
+    'rss_url' => 'https://localhost/rss.xml', //note: site_url/catname/rss.xml works for cat specific feeds.
     'default_lemon_years' => 2, //number of years before lemon threads can be replied to
     'chanlike_reply_limit' => 100, //number of replies before chanlike threads are removed from the homepage and archived
     'topic_preview_length' => 20, //number of characters to show in the topic preview on the homepage and category pages.
@@ -73,7 +73,7 @@ $user = array(
     'usergemsite' => '', //if you have a gemlog or something you want to plug in here
     'userspacehey' => '', //if you've got a spacehey account, going for the 2000s vibe
     'userirchandleandnet' => '', //for example john@irc.mycool.net
-    'usermsnescargot' => '', //for the few proud escargot users to share their msn doohickey
+    'usersmsnescargot' => '', //for the few proud escargot users to share their msn doohickey
     'profileprimarycolor' => '#FFFFFF', // Default profile primary color
     'profilesecondarycolor' => '#CCCCCC', // Default profile secondary color
     'profileheadingtextcolor' => '#000000', // Default profile heading text color
@@ -120,6 +120,24 @@ function get_UserNameForID($user_id) {
     }
 }
 
+function do_getUserByUsername($username){
+    global $go_sql;
+    $username = trim($username);
+    if($username === '') {
+        return null;
+    }
+
+    $stmt = $go_sql->prepare("SELECT * FROM users WHERE username = ? LIMIT 1");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if($result->num_rows > 0) {
+        return $result->fetch_assoc();
+    }
+
+    return null;
+}
+
 
 function do_insertNewUser($supplied_username, $supplied_password, $supplied_email) {
     global $go_sql, $user;
@@ -137,32 +155,68 @@ function do_insertNewUser($supplied_username, $supplied_password, $supplied_emai
     // Hash the password before storing it
     $hashed_password = password_hash($supplied_password, PASSWORD_DEFAULT);
     
-    // Insert the new user into the database with default values
-    $stmt = $go_sql->prepare("INSERT INTO users (username, password, email, theme, isadmin, defaultlocation, defaultbio, defaultavatar, awards, isbanned, ban_length, ban_reason, ismoderator, defaultsignature, sigbanners, userportrait, usernamecolor, usernamestyle, joindate, crackedportrait, duncecorner, userkudos, userkudostogive, userposts, userwebsite, usergemsite, userspacehey, userirchandleandnet, usersmsnescargot, profileprimarycolor, profilesecondarycolor, profileheadingtextcolor, profilelowerheadingcolor, profilehyperlinkcolor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssssssssssssssssssssssssssssss", $supplied_username, $hashed_password, $supplied_email, $user['theme'], $user['isadmin'], $user['defaultlocation'], $user['defaultbio'], $user['defaultavatar'], $user['awards'], $user['isbanned'], $user['ban_length'], $user['ban_reason'], $user['ismoderator'], $user['defaultsignature'], $user['sigbanners'], $user['userportrait'], $user['usernamecolor'], $user['usernamestyle'], $user['joindate'], $user['crackedportrait'], $user['duncecorner'], $user['userkudos'], $user['userkudostogive'], $user['userposts'], $user['userwebsite'], $user['usergemsite'], $user['userspacehey'], $user['userirchandleandnet'], $user['usersmsnescargot'], $user['profileprimarycolor'], $user['profilesecondarycolor'], $user['profileheadingtextcolor'], $user['profilelowerheadingcolor'], $user['profilehyperlinkcolor']);
-    $stmt->execute();
-    return true;
+    // Keep account creation minimal and rely on DB defaults for the rest.
+    $stmt = $go_sql->prepare("INSERT INTO users (username, password, email, theme, joindate) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssi", $supplied_username, $hashed_password, $supplied_email, $user['theme'], $user['joindate']);
+    return $stmt->execute();
 
 }
+// Category defaults - these are used for the categories on the site, more can be added in the database. It will start with these. todo!
+$categories = array(1 => "General", 2 => "Sports", 3 => "Technology", 4 => "Gaming", 5 => "Music", 6 => "Miscellaneous", 7=> "Meta");
+
 //<ul id="main_menu" class="menu"><li class="hot_topics"><a href="/hot_topics">Hot</a></li><li class="topics"><a href="/topics">Topics</a></li><li class="bumps"><a href="/bumps">Bumps</a></li><li class="replies"><a href="/replies">Replies</a></li><li class="new_topic"><a href="/new_topic">New topic</a></li><li class="history"><a href="/history">History</a></li><li class="watchlist"><a href="/watchlist">Watchlist</a></li><li class="bulletins"><a href="/bulletins">Bulletins</a></li><li class="folks"><a href="/folks">Folks</a></li><li class="search"><a href="/search">Search</a></li><li class="stuff"><a href="/stuff">Stuff</a></li>    </ul>
 $homepagemenu = array(
-    'Hot' => '/hot_topics',
-    'Topics' => '/topics',
-    'Bumps' => '/bumps',
-    'Replies' => '/replies',
-    'New Topic' => '/new_topic');
-
-for($i = 1; $i <= count($categories); $i++){
-    $homepagemenu[$categories[$i]] = '/cat/' . $i;
-} //intellisense literally read my mind here. nice.
-
-$homepagemenu[] = array(
-    'Folks' => '/folks',
-    'Search' => '/search',
-    'Stuff' => '/stuff'
+    array('name' => 'Hot', 'url' => '/hot_topics'),
+    array('name' => 'Topics', 'url' => '/topics'),
+    array('name' => 'Bumps', 'url' => '/bumps'),
+    array('name' => 'Replies', 'url' => '/replies'),
+    array('name' => 'New Topic', 'url' => '/new_topic')
 );
+
+foreach($categories as $category_id => $category_name){
+    $homepagemenu[] = array('name' => $category_name, 'url' => '/cat/' . $category_id);
+}
+
+$homepagemenu[] = array('name' => 'Folks', 'url' => '/folks');
+$homepagemenu[] = array('name' => 'Inbox', 'url' => '/inbox');
+$homepagemenu[] = array('name' => 'Search', 'url' => '/search');
+$homepagemenu[] = array('name' => 'Stuff', 'url' => '/stuff');
+
 global $homepagemenu;
 global $categories;
+
+function do_getUnreadPrivateMessageCount($user_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT COUNT(*) AS unread_count FROM private_messages WHERE to_user_id = ? AND is_read = 0");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return intval($row['unread_count']);
+    }
+    return 0;
+}
+
+function do_getHomePageMenu(){
+    global $homepagemenu;
+    $menu = $homepagemenu;
+
+    if(isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null) {
+        $unread = do_getUnreadPrivateMessageCount(intval($_SESSION['user_id']));
+        if($unread > 0) {
+            foreach($menu as &$item) {
+                if(isset($item['url']) && $item['url'] === '/inbox') {
+                    $item['name'] = 'Inbox (' . $unread . ')';
+                    break;
+                }
+            }
+            unset($item);
+        }
+    }
+
+    return $menu;
+}
 
 function do_determineCurrentPageorCat(){
     if(isset($_GET['url'])){
@@ -178,41 +232,52 @@ function do_determineCurrentPageorCat(){
         return 'Latest Threads';
     }
 }
-// Category defaults - these are used for the categories on the site, more can be added in the database. It will start with these. todo!
-$categories = array(1 => "General", 2 => "Sports", 3 => "Technology", 4 => "Gaming", 5 => "Music", 6 => "Miscellaneous", 7=> "Meta");
 
-
+// Helper to determine page title from URL slug
+function determine_current_page($url_slug){
+    $page_titles = array(
+        'hot_topics' => 'Hot Topics',
+        'topics' => 'All Topics',
+        'bumps' => 'Recent Bumps',
+        'replies' => 'Latest Replies',
+        'new_topic' => 'New Topic',
+        'folks' => 'Users',
+        'search' => 'Search',
+        'stuff' => 'Stuff'
+    );
+    return isset($page_titles[$url_slug]) ? $page_titles[$url_slug] : ucfirst(str_replace('_', ' ', $url_slug));
+}
 // Default Awards - any additional awards can be added to the awards table in the database, but these are the defaults that come with the site todo!
 $awards = array(
     1 => array(
         'name' => 'First Post',
         'description' => 'Awarded for making your first post.',
-        positive => 'assets/png/awards/first_post.png'
+        'image_url' => 'assets/png/awards/first_post.png'
     ),
     2 => array(
         'name' => 'Kudos',
         'description' => 'Awarded for receiving 15 kudos from other users.',
-        positive => 'assets/png/awards/kudos.png'
+        'image_url' => 'assets/png/awards/kudos.png'
     ),
     3 => array(
         'name' => 'Veteran',
         'description' => 'Awarded for being a member for 1 year.',
-        positive => 'assets/png/awards/veteran.png'
+        'image_url' => 'assets/png/awards/veteran.png'
     ),
     4 => array(
         'name' => 'Out on Good Behavior',
         'description' => 'Awarded for being unbanned after a tempban',
-        positive => 'assets/png/awards/out_on_good_behavior.png'
+        'image_url' => 'assets/png/awards/out_on_good_behavior.png'
     ),
     5 => array(
         'name' => 'Crass Clown',
         'description' => 'Has been dunced by a moderator at least twice.',
-        positive => 'assets/png/awards/crass_clown.png'
+        'image_url' => 'assets/png/awards/crass_clown.png'
     ),
     6 => array(
         'name' => 'Moneybags',
         'description' => 'Donated to the website, all you get is the monopoly guy.',
-        positive => 'assets/png/awards/moneybags.png'
+        'image_url' => 'assets/png/awards/moneybags.png'
     ),
 );
 
@@ -251,6 +316,21 @@ function do_fetchUserAttribute($user_id, $attribute) {
     }
 }
 
+function chk_IsUserModeratorOrAdmin($user_id) {
+    $u = do_getUserById($user_id);
+    if(!$u) {
+        return false;
+    }
+    if(!empty($u['isadmin'])) {
+        return true;
+    }
+    if(isset($u['ismoderator'])) {
+        $mod_scope = json_decode($u['ismoderator'], true);
+        return is_array($mod_scope) && count($mod_scope) > 0;
+    }
+    return false;
+}
+
 
 function do_getFullyFormattedUsername($user_id) {
     global $go_sql, $site;
@@ -278,6 +358,10 @@ function do_getFullyFormattedUsername($user_id) {
 function do_getTopics($page){
     global $go_sql;
     $topics_per_page = 20;
+    $page = intval($page);
+    if($page < 1) {
+        $page = 1;
+    }
     $offset = ($page - 1) * $topics_per_page;
     $stmt = $go_sql->prepare("SELECT * FROM topics ORDER BY last_bump DESC LIMIT ?, ?");
     $stmt->bind_param("ii", $offset, $topics_per_page);
@@ -491,8 +575,11 @@ function do_getAllTagsForThread($thread_id){
 //the smart move will be just to pull the top 20. maybe we'll have a "more" or "random" option.
 function do_getAllThreadsInTag($tag){
     global $go_sql;
-    $stmt = $go_sql->prepare("SELECT * FROM topics WHERE JSON_CONTAINS(tags, '\"' ? '\"') ORDER BY last_bump DESC LIMIT 20");
-    $stmt->bind_param("s", $tag);
+    // JSON_CONTAINS searches for a value within a JSON document
+    // tags is a JSON array of strings like ["tag1", "tag2"], so we search for the tag as a JSON string
+    $tag_json = json_encode($tag); // convert tag to JSON format for the search
+    $stmt = $go_sql->prepare("SELECT * FROM topics WHERE JSON_CONTAINS(tags, ?) ORDER BY last_bump DESC LIMIT 20");
+    $stmt->bind_param("s", $tag_json);
     $stmt->execute();
     return $stmt->get_result();
 }
@@ -508,6 +595,154 @@ function getThreadById($thread_id){
     } else {
         return null; // or some default value
     }
+}
+
+// canonical helper name used by page files.
+function do_getThreadById($thread_id){
+    return getThreadById($thread_id);
+}
+
+function do_getThreadOwnerId($thread_id){
+    $thread = do_getThreadById($thread_id);
+    if(!$thread) {
+        return null;
+    }
+    return intval($thread['poster_id']);
+}
+
+function do_watchThread($user_id, $thread_id){
+    global $go_sql;
+    $created_at = time();
+    $stmt = $go_sql->prepare("INSERT INTO watchlist (user_id, thread_id, created_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE created_at = VALUES(created_at)");
+    $stmt->bind_param("iii", $user_id, $thread_id, $created_at);
+    return $stmt->execute();
+}
+
+function do_forgetThread($user_id, $thread_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("DELETE FROM watchlist WHERE user_id = ? AND thread_id = ?");
+    $stmt->bind_param("ii", $user_id, $thread_id);
+    return $stmt->execute();
+}
+
+function chk_IsThreadWatchedByUser($user_id, $thread_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT id FROM watchlist WHERE user_id = ? AND thread_id = ? LIMIT 1");
+    $stmt->bind_param("ii", $user_id, $thread_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->num_rows > 0;
+}
+
+function do_sendPrivateMessage($from_user_id, $to_user_id, $subject, $content, $thread_id = 0){
+    global $go_sql;
+    $subject = trim($subject);
+    $content = trim($content);
+    if($subject === '' || $content === '') {
+        return false;
+    }
+    $created_at = time();
+    $stmt = $go_sql->prepare("INSERT INTO private_messages (from_user_id, to_user_id, thread_id, subject, content, created_at, is_read) VALUES (?, ?, ?, ?, ?, ?, 0)");
+    $stmt->bind_param("iiissi", $from_user_id, $to_user_id, $thread_id, $subject, $content, $created_at);
+    return $stmt->execute();
+}
+
+function do_getPrivateMessageConversations($user_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT CASE WHEN from_user_id = ? THEN to_user_id ELSE from_user_id END AS peer_id, MAX(id) AS last_message_id, MAX(created_at) AS last_message_at, SUM(CASE WHEN to_user_id = ? AND is_read = 0 THEN 1 ELSE 0 END) AS unread_count FROM private_messages WHERE from_user_id = ? OR to_user_id = ? GROUP BY peer_id ORDER BY last_message_at DESC");
+    $stmt->bind_param("iiii", $user_id, $user_id, $user_id, $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $conversations = array();
+    while($row = $result->fetch_assoc()) {
+        $peer_id = intval($row['peer_id']);
+        $latest_message = null;
+        $latest_stmt = $go_sql->prepare("SELECT from_user_id, to_user_id, subject, content, created_at FROM private_messages WHERE id = ? LIMIT 1");
+        $last_message_id = intval($row['last_message_id']);
+        $latest_stmt->bind_param("i", $last_message_id);
+        $latest_stmt->execute();
+        $latest_result = $latest_stmt->get_result();
+        if($latest_result->num_rows > 0) {
+            $latest_message = $latest_result->fetch_assoc();
+        }
+
+        $peer = do_getUserById($peer_id);
+        $conversations[] = array(
+            'peer_id' => $peer_id,
+            'peer_username' => $peer ? $peer['username'] : 'Unknown User',
+            'last_message_at' => intval($row['last_message_at']),
+            'unread_count' => intval($row['unread_count']),
+            'last_subject' => $latest_message ? $latest_message['subject'] : '',
+            'last_content' => $latest_message ? $latest_message['content'] : ''
+        );
+    }
+    return $conversations;
+}
+
+function do_getPrivateMessageThread($user_id, $peer_id, $limit = 100){
+    global $go_sql;
+    $limit = intval($limit);
+    if($limit < 1) {
+        $limit = 100;
+    }
+    $stmt = $go_sql->prepare("SELECT id, from_user_id, to_user_id, thread_id, subject, content, created_at, is_read FROM private_messages WHERE (from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?) ORDER BY created_at ASC, id ASC LIMIT ?");
+    $stmt->bind_param("iiiii", $user_id, $peer_id, $peer_id, $user_id, $limit);
+    $stmt->execute();
+    return $stmt->get_result();
+}
+
+function do_getPrivateMessageThreadCount($user_id, $peer_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT COUNT(*) AS message_count FROM private_messages WHERE (from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?)");
+    $stmt->bind_param("iiii", $user_id, $peer_id, $peer_id, $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return intval($row['message_count']);
+    }
+    return 0;
+}
+
+function do_getPrivateMessageThreadPage($user_id, $peer_id, $page = 1, $per_page = 30){
+    global $go_sql;
+    $page = intval($page);
+    $per_page = intval($per_page);
+    if($page < 1) {
+        $page = 1;
+    }
+    if($per_page < 1) {
+        $per_page = 30;
+    }
+
+    $offset = ($page - 1) * $per_page;
+    $stmt = $go_sql->prepare("SELECT id, from_user_id, to_user_id, thread_id, subject, content, created_at, is_read FROM private_messages WHERE (from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?) ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?");
+    $stmt->bind_param("iiiiii", $user_id, $peer_id, $peer_id, $user_id, $per_page, $offset);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $messages = array();
+    while($row = $result->fetch_assoc()) {
+        $messages[] = $row;
+    }
+
+    return array_reverse($messages);
+}
+
+function do_markPrivateMessagesRead($user_id, $peer_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("UPDATE private_messages SET is_read = 1 WHERE to_user_id = ? AND from_user_id = ? AND is_read = 0");
+    $stmt->bind_param("ii", $user_id, $peer_id);
+    return $stmt->execute();
+}
+
+function do_getRepliesForThread($thread_id){
+    global $go_sql;
+    $stmt = $go_sql->prepare("SELECT * FROM replies WHERE thread_id = ? AND isHidden = 0 ORDER BY created_at ASC, id ASC");
+    $stmt->bind_param("i", $thread_id);
+    $stmt->execute();
+    return $stmt->get_result();
 }
 
 
@@ -539,6 +774,7 @@ function chk_IsPollLemonedChannedOrArchivedByThreadId($thread_id){
 function post_Reply($thread_id, $poster_id, $content, $media = array(), $attached_links = array(), $poll = 0){
     global $go_sql;
     //check for presence of poll in content at post time, if there is a poll, we'll need to create the poll first and then link it to the reply.
+    $poll_id = 0;
     if($poll > 0){
         //create the poll and get the poll id
         $stmt = $go_sql->prepare("INSERT INTO polls (thread_id, reply_id) VALUES (?, ?)");
@@ -549,12 +785,12 @@ function post_Reply($thread_id, $poster_id, $content, $media = array(), $attache
         } else {
             return false; //failed to create poll, so we can't create the reply.
         }
-        
     }
     $media_json = json_encode($media);
     $links_json = json_encode($attached_links);
-    $stmt = $go_sql->prepare("INSERT INTO replies (thread_id, poster_id, content, media, attached_links, poll_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("iisssii", $thread_id, $poster_id, $content, $media_json, $links_json, $poll);
+    $created_at = time();
+    $stmt = $go_sql->prepare("INSERT INTO replies (thread_id, poster_id, content, created_at, media, attached_links, poll_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("iisissi", $thread_id, $poster_id, $content, $created_at, $media_json, $links_json, $poll_id);
     if($stmt->execute()){
         // Update the replies count and last bump time in the topics table
         $stmt = $go_sql->prepare("UPDATE topics SET replies_count = replies_count + 1, last_bump = ? WHERE id = ?");
@@ -567,25 +803,17 @@ function post_Reply($thread_id, $poster_id, $content, $media = array(), $attache
     }
 }
 
-function post_Topic($title, $content, $poster_id, $category_id, $media = array(), $attached_links = array()){
+function post_Topic($title, $content, $poster_id, $category_id, $media = array(), $attached_links = array(), $poll = 0){
     global $go_sql;
-    //check for presence of poll in content at post time, if there is a poll, we'll need to create the poll first and then link it to the reply.
-    if($poll > 0){
-        //create the poll and get the poll id
-        $stmt = $go_sql->prepare("INSERT INTO polls (thread_id, reply_id) VALUES (?, ?)");
-        $stmt->bind_param("ii", $thread_id, $poll);
-        if($stmt->execute()){
-            $poll_id = $stmt->insert_id;
-            //now we have the poll id, we can link it to the reply when we create the reply.
-        } else {
-            return false; //failed to create poll, so we can't create the reply.
-        }
-        
-    }
+    // For now, treat $poll as an existing poll id and store it directly on the topic.
+    $poll_id = intval($poll);
     $media_json = json_encode($media);
     $links_json = json_encode($attached_links);
-    $stmt = $go_sql->prepare("INSERT INTO topics (title, content, poster_id, category_id, media, attached_links, poll_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssiissi", $title, $content, $poster_id, $category_id, $media_json, $links_json, $poll);
+    $default_flairs = json_encode(array(1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0));
+    $default_tags = json_encode(array());
+    $current_time = time();
+    $stmt = $go_sql->prepare("INSERT INTO topics (title, content, poster_id, category_id, created_at, last_bump, media, attached_links, hasPoll, hasFlairs, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssiiiississ", $title, $content, $poster_id, $category_id, $current_time, $current_time, $media_json, $links_json, $poll_id, $default_flairs, $default_tags);
     return $stmt->execute();
 }
 
@@ -658,7 +886,7 @@ function do_RenderThreadLinkInReplyText($text){
     //this should create a link to the thread when rendering the reply and have 
     //a tooltip of the thread title when hovered over.
     if(preg_match('/>>\d+/', $text)){
-        $text = preg_replace_callback('/>>(\d+)/', function($matches) {
+        return preg_replace_callback('/>>(\d+)/', function($matches) {
             $thread_id = $matches[1];
             global $go_sql;
             $stmt = $go_sql->prepare("SELECT title FROM topics WHERE id = ?");
@@ -672,17 +900,17 @@ function do_RenderThreadLinkInReplyText($text){
             } else {
                 return '>>' . $thread_id; // If thread not found, just return the original text
             }
-        }, htmlspecialchars($text));
+        }, $text);
     }
 
-    
+    return $text;
 }
 
 function do_AddTooltipWithReplySnippet($reply_content, $reply_id){
    //When a user replies @username, we want to add a snippet of username's last post
    //in the thread (the one presumably being replied to) as a tooltip on the @username text. This function will be called when rendering the reply text.
     if(preg_match('/@(\w+)/', $reply_content)){
-        $reply_content = preg_replace_callback('/@(\w+)/', function($matches) use ($reply_id) {
+        return preg_replace_callback('/@(\w+)/', function($matches) use ($reply_id) {
             $username = $matches[1];
             global $go_sql;
             // First, we need to get the user id of the username being mentioned
@@ -703,17 +931,16 @@ function do_AddTooltipWithReplySnippet($reply_content, $reply_id){
                     $last_reply_snippet = htmlspecialchars(substr($row['content'], 0, 100)); // Get a snippet of the last reply
                     return '<span class="user-mention" title="' . $last_reply_snippet . '">@' . htmlspecialchars($username) . '</span>';
                 } else {
-                        do_sendnotification($mentioned_user_id, 'You were mentioned in a reply', '/thread/' . get_ThreadIdByReplyId($reply_id) . '#reply');
-
                     return '@' . htmlspecialchars($username); 
                     
                 }
             } else {
                 return '@' . htmlspecialchars($username); // If user not found, just return the original text
             }
-        }, htmlspecialchars($reply_content));
+        }, $reply_content);
     }
- 
+
+    return $reply_content;
 }
 
 //time machine shit: this is where we'll make sure certain modernisms are turned off.
@@ -759,6 +986,7 @@ function do_RenderTopicContent($topic_content){
 
 function do_RenderReplyText($reply_content, $reply_id){
     //this will be the main function to call when rendering the reply text, it will call the other functions to render links, formatting, and add tooltips.
+    $reply_content = htmlspecialchars($reply_content, ENT_QUOTES, 'UTF-8');
     $reply_content = do_RenderMarkdownLinksInText($reply_content);
     $reply_content = do_RenderMarkdownFormattingInText($reply_content);
     $reply_content = do_RenderMarkdownCodeInText($reply_content);
@@ -982,6 +1210,14 @@ $samplePostFlairs = array("Funny" => 10, "Informative" => 5, "Insightful" => 3, 
 //the keys are the flair names, and the values are the counts of how many times that flair has been given to that post.
 //this is stored in $topic['hasFlairs'] as a json_encoded array of flair_id => count.
 
+function do_getFlairNameById($flair_id){
+    global $postFlairs;
+    if(isset($postFlairs[$flair_id])) {
+        return $postFlairs[$flair_id]['name'];
+    }
+    return 'Unknown';
+}
+
 function do_fetchFlairsbyNameforPost($thread_id){
     global $go_sql;
     $stmt = $go_sql->prepare("SELECT flair_id, COUNT(*) as count FROM post_flairs WHERE thread_id = ? GROUP BY flair_id");
@@ -1038,13 +1274,26 @@ function do_getStandoutFlairsforPost($thread_id){
         $standout_value = $total_negative_flairs / count($flairs); // if negative flairs outweigh positive, use average negative flair count as threshold
     }
 
-
     foreach($flairs as $flair_name => $count) {
         if($count >= $standout_value) { // arbitrary threshold for standout flairs
             $standout_flairs[$flair_name] = $count;
         }
     }
-    return array($standout_flairs, $standout_value); //we get the flair names, and their average score, slashdot style
+    return $standout_flairs; // return array of flair_name => count for all standout flairs
+}
+
+// Canonical function name wrapper for thread page consensus display
+function do_getStandoutFlairsForPost($thread_id){
+    $standout_flairs = do_getStandoutFlairsforPost($thread_id);
+    if(empty($standout_flairs)) {
+        return null; // no consensus
+    }
+    // Return the most-voted standout flair as a single consensus item
+    arsort($standout_flairs); // sort by count descending
+    $top_flair = reset($standout_flairs);
+    $top_flair_name = key($standout_flairs);
+    $flair_count = $top_flair;
+    return array('flair_name' => $top_flair_name, 'flair_count' => $flair_count);
 }
 
 
@@ -1083,10 +1332,21 @@ $postFlairs = array(
 
 function do_getAwardsByUserId($user_id) {
     global $go_sql;
-    $stmt = $go_sql->prepare("SELECT * FROM awards WHERE user_id = ?");
+    $stmt = $go_sql->prepare("SELECT a.award_id, c.name, c.description, c.image_url, a.created_at FROM awards a INNER JOIN award_catalog c ON c.id = a.award_id WHERE a.user_id = ? ORDER BY a.created_at ASC");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
-    return $stmt->get_result();
+    $result = $stmt->get_result();
+    $earned = array();
+    while($row = $result->fetch_assoc()) {
+        $earned[] = array(
+            'award_id' => intval($row['award_id']),
+            'name' => $row['name'],
+            'description' => $row['description'],
+            'image_url' => $row['image_url'],
+            'created_at' => intval($row['created_at'])
+        );
+    }
+    return $earned;
 }
 
 function fun_timeAgo($timestamp) {
@@ -1149,91 +1409,78 @@ function do_fetchAnyNotifs(){
         return null; // No user logged in, so no notifications to display   
     }
 }
-function do_HandleNotifs($notiftype, $notifdata){
-    // This function will take a notification type and data
-    // each type of notif works differently:
-    // mention: data will include the thread/reply id and a link. 
-    // trophy: data will include the name of the trophy and a link to the user's profile
-    // ban: data will include the reason for the ban and its duration.
-
-    //we will be using the typical atbbs notif format,
-    //which is a bar at the top of the page thats persistence depends on the format.
-    /*
-        bans will persist no matter what, showing a countdown. this overrides all other 
-        notifs and will be the only one shown until the ban expires.
-
-        trophy notifs will persist until the user clicks on them to view the trophy. 
-        they will dissappear after being clicked on, and only override the mention notifs.
-
-        mention notifs are least persistent, but can be dismissed. If there are multiple,
-        rather than stacking them, we'll arrange them in a marquee ticker that auto scrolls like this:
-
-        [New mention in Thread Title 1] (small text)[dismiss], etc and they will scroll.
-            the dismiss will be a hyperlink that goes to /dismissnotif/notif_id and then back to
-            the previous page. The remaining notifs will continue to scroll in the ticker.
-
-            the notif bar isn't persistent and doesn't need to be. it is written:
-                <div id="notice"><strong>Notice:</strong> 
-                <strong>New mention in Thread 1</strong> <a href=/thread/1#reply_anchorpoint> [view] <a href="/dismissnotif/123">[dismiss]</a></div>
-
-            if there are over 1 notifs, a "|" will separate them in the ticker.
-
-            if the length of the notifs exceeds the width of the page, it will scroll like a marquee, otherwise it will just sit there.
-
-
-            the notifs sql table will looks like
-            id (int, primary key)
-            user_id (int, foreign key to users table)
-            type (varchar) - the type of notification, e.g. "mention", "trophy", "ban", etc.
-            data (text) - a json_encoded array of data relevant to the notification, e.g. for a mention it might include the thread_id and a link to the post, for a trophy it might include the trophy name and a link to the trophy page, for a ban it might include the reason and duration, etc.
-            is_read (boolean) -
-
-    */
-    global $notifcategories;
-    $allnotifs = do_fetchAnyNotifs(); // fetch all unread notifs for the user
-    $mentions = array();
-    foreach($allnotifs as $notif) {
-        // we'll loop through the notifs and display them in the notif bar according to their type and data.
-        // for simplicity, we'll just handle one notif at a time in this function, but in practice you would want to handle multiple notifs and arrange them in the ticker as described above.
-        $notiftype = $notif['type'];
+function do_HandleNotifs(){
+    // Display the highest-priority unread notification for the logged in user
+    // Priority: ban > trophy > feedback > mention
+    global $notifcategories, $go_sql;
+    
+    if(!isset($_SESSION['user_id']) || $_SESSION['user_id'] === null) {
+        return null; // not logged in
+    }
+    
+    // Check for ban first (highest priority)
+    $user_id = $_SESSION['user_id'];
+    $stmt = $go_sql->prepare("SELECT * FROM notifications WHERE user_id = ? AND type = 'ban' AND is_read = 0 ORDER BY created_at DESC LIMIT 1");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if($result->num_rows > 0) {
+        $notif = $result->fetch_assoc();
         $notifdata = json_decode($notif['data'], true);
         $notif_id = $notif['id'];
-
-        
-        $notifbartext = '';
-        if($notiftype == 'feedback'){
-            $notifbartext = '<strong>' . $notifcategories['feedback'] . '</strong><br>' . htmlspecialchars($notifdata['message']);
-            // This will be the only notif shown, so we can return it immediately.
-            return $notifbartext;
-        }
-        elseif($notiftype == 'ban'){
-            $notifbartext = '<strong>' . $notifcategories['ban'] . '</strong><br>Reason: ' . htmlspecialchars($notifdata['reason']) . '<br>Duration: ' . fun_secondsToHumanReadable(htmlspecialchars($notifdata['duration']));
-            // This will be the only notif shown, so we can return it immediately.
-            return $notifbartext;
-        } elseif($notiftype == 'trophy' && isset($_SESSION['user_id'])){
-            $notifbartext = '<strong>' . $notifcategories['trophy'] . '</strong><br>You earned the "' . htmlspecialchars($notifdata['trophy_name']) . '" trophy! <a href="/user/' . htmlspecialchars($_SESSION['user_id']) . '">[view]</a> <a href="/do/dismissnotif/' . $notif_id . '">[dismiss]</a>';    
-            return $notifbartext; // trophy notifs override mention notifs, but can be dismissed by clicking on them to view the trophy. so we return it immediately to be displayed in the notif bar.
-        }   elseif($notiftype == 'mention'){
-            if(empty($notifbartext)){
-                $notifbartext = '<strong>' . $notifcategories['mention'] . '</strong><br><a href="' . htmlspecialchars($notifdata['link']) . '">[view]</a><a href="/do/dismissnotif/' . $notif_id . '">[dismiss]</a>';
-            } else {
-                $notifbartext .= '| <strong>' . $notifcategories['mention'] . '</strong><br><a href="' . htmlspecialchars($notifdata['link']) . '">[view]</a><a href="/do/dismissnotif/' . $notif_id . '">[dismiss]</a>';
-            }
-            if(strlen($notifbartext) > 150){ // if the notif bar text exceeds 100 characters, we will just show the number of notifs instead to prevent overflow. this is a simple solution to the problem of too many notifs, but it works for our purposes.
-                $notifbartext = '<marquee>'.$notifbartext.'</marquee>'; // if the notif bar text exceeds 150 characters, we will make it scroll like a marquee to prevent overflow. this is a simple solution to the problem of too many notifs, but it works for our purposes.
-            }
-        }
-        return $notifbartext; // return the formatted notification text to be displayed in the notif bar.
-    }       
+        $ban_length = isset($notifdata['duration']) ? intval($notifdata['duration']) : (isset($notifdata['length']) ? intval($notifdata['length']) : 0);
+        return '<strong>' . $notifcategories['ban'] . '</strong><br>Reason: ' . htmlspecialchars($notifdata['reason']) . '<br>Duration: ' . fun_secondsToHumanReadable($ban_length) . ' <a href="/do/dismissnotif/' . $notif_id . '">[dismiss]</a>';
+    }
+    
+    // Check for trophy (second priority)
+    $stmt = $go_sql->prepare("SELECT * FROM notifications WHERE user_id = ? AND type = 'trophy' AND is_read = 0 ORDER BY created_at DESC LIMIT 1");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if($result->num_rows > 0) {
+        $notif = $result->fetch_assoc();
+        $notifdata = json_decode($notif['data'], true);
+        $notif_id = $notif['id'];
+        return '<strong>' . $notifcategories['trophy'] . '</strong><br>You earned the "' . htmlspecialchars($notifdata['trophy_name']) . '" trophy! <a href="/user/' . $user_id . '">[view]</a> <a href="/do/dismissnotif/' . $notif_id . '">[dismiss]</a>';
+    }
+    
+    // Check for feedback (third priority)
+    $stmt = $go_sql->prepare("SELECT * FROM notifications WHERE user_id = ? AND type = 'feedback' AND is_read = 0 ORDER BY created_at DESC LIMIT 1");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if($result->num_rows > 0) {
+        $notif = $result->fetch_assoc();
+        $notifdata = json_decode($notif['data'], true);
+        return '<strong>' . $notifcategories['feedback'] . '</strong><br>' . htmlspecialchars($notifdata['message']);
+    }
+    
+    // Check for mention (lowest priority)
+    $stmt = $go_sql->prepare("SELECT * FROM notifications WHERE user_id = ? AND type = 'mention' AND is_read = 0 ORDER BY created_at DESC LIMIT 1");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if($result->num_rows > 0) {
+        $notif = $result->fetch_assoc();
+        $notifdata = json_decode($notif['data'], true);
+        $notif_id = $notif['id'];
+        return '<strong>' . $notifcategories['mention'] . '</strong><br><a href="' . htmlspecialchars($notifdata['link']) . '">[view]</a> <a href="/do/dismissnotif/' . $notif_id . '">[dismiss]</a>';
+    }
+    
+    return null; // no notifications
 }
 
 function do_notificationflow(){
-    // this function will be called on each page load to check for any notifications for the logged in user and return the formatted notification text to be displayed in the notif bar.
+    // this function will be called on each page load to check for any notifications for the logged in user and display them in the notif bar.
     if(isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null){
-        $herewego = do_HandleNotifs(); // this will fetch the notifs and format them for display in the notif bar.
-        echo '<div id="notice">'.$herewego.'</div>'; // this will display the notif bar with the formatted notification text.
-    } else {
-        return null; // no user logged in, so no notifications to display
+        $notif_html = do_HandleNotifs(); // this will fetch and format the highest-priority notification
+        if($notif_html) {
+            echo '<div id="notice">' . $notif_html . '</div>'; // display the notification bar
+        }
     }
 }
 
@@ -1241,7 +1488,7 @@ function do_setnotifread($notif_id){
     global $go_sql;
     $stmt = $go_sql->prepare("UPDATE notifications SET is_read = 1 WHERE id = ?");
     $stmt->bind_param("i", $notif_id);
-    $stmt->execute();
+    return $stmt->execute();
 }
 
 function do_sendnotification($user_id, $type, $data){
@@ -1259,42 +1506,63 @@ function do_sendnotification($user_id, $type, $data){
 
 
 function do_logentry($severity, $message, $modlog = false, $error = null){
-    //right now, todo: make it do something. in the future
-    //this should log somewhere. right now it's going to just sit here
-    //as a stub so I can finish adding it to all the /do/ framework files
-    // $error is null by default because I feel like most shit is notices
-    //we've also added the modlogging option which will be called only
-    //mod /do/ actions. 
-
+    // Log to file with severity, timestamp, and optional context
     $severities = array("Notice", "Warning", "Error");
+    $severity = in_array($severity, $severities) ? $severity : "Notice";
+    
+    $timestamp = date('Y-m-d H:i:s');
+    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'guest';
+    
+    $log_entry = sprintf("[%s] %s | User: %s | %s", $timestamp, $severity, $user_id, $message);
+    if($error !== null) {
+        $log_entry .= " | Error: " . $error;
+    }
+    if($modlog) {
+        $log_entry .= " [MODLOG]";
+    }
+    
+    // Write to log file (create logs directory if it doesn't exist)
+    $log_dir = __DIR__ . '/logs';
+    if(!is_dir($log_dir)) {
+        mkdir($log_dir, 0755, true);
+    }
+    
+    $log_file = $log_dir . '/ezbbs.log';
+    error_log($log_entry . PHP_EOL, 3, $log_file);
 }
 
 function do_setuserbanned($user_id, $ban_length, $ban_reason){
     global $go_sql;
     $stmt = $go_sql->prepare("UPDATE users SET isbanned = 1, ban_length = ?, ban_reason = ? WHERE id = ?");
     $stmt->bind_param("isi", $ban_length, $ban_reason, $user_id);
-    $stmt->execute();
+    if(!$stmt->execute()) {
+        return false;
+    }
 
     //L A N K : let a neerdowell know!
     do_sendnotification($user_id, "ban", array("length" => $ban_length, "reason" => $ban_reason));
+    return true;
 }
 
 function do_setuserunbanned($user_id){
     global $go_sql;
     $stmt = $go_sql->prepare("UPDATE users SET isbanned = 0, ban_length = 0, ban_reason = '' WHERE id = ?");
     $stmt->bind_param("i", $user_id);
-    $stmt->execute();
+    if(!$stmt->execute()) {
+        return false;
+    }
 
     //L A N K : let a neerdowell know!
     do_clearUserBanNotifs($user_id);
     do_sendnotification($user_id, "feedback", array("message" => "You have been unbanned manually by a mod, congrats I guess."));
+    return true;
 }
 
 function do_clearUserBanNotifs($user_id){
     global $go_sql;
     $stmt = $go_sql->prepare("DELETE FROM notifications WHERE user_id = ? AND type = 'ban'");
     $stmt->bind_param("i", $user_id);
-    $stmt->execute();
+    return $stmt->execute();
 }
 
 //login flow. core functions and checks to determine login status
@@ -1316,7 +1584,7 @@ if(!isset($_SESSION)) {
     session_start();
 }
 
-if(!isset($COOKIE['user_id'])) {
+if(!isset($_COOKIE['user_id'])) {
     $_SESSION['user_id'] = null; // Set to null for guests
     $_SESSION['isloggedin'] = false;
 }
