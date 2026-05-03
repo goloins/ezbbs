@@ -142,10 +142,10 @@ foreach(do_getHomePageMenu() as $menu_item) {
 <?php } ?>
 
 <?php if($selected_mode === 'append') { ?>
-            <label>Current post text:</label>
-            <div id="existing_content" class="body border" style="max-height: 260px; overflow-y: auto;"><?php echo nl2br(htmlspecialchars($post_content, ENT_QUOTES, 'UTF-8')); ?></div>
+            <label>Current post text:</label><br>
+            <div id="existing_content" class="body border" style="max-height: 260px; overflow-y: auto;"><?php echo nl2br(htmlspecialchars($post_content, ENT_QUOTES, 'UTF-8')); ?></div><br>
 
-            <label for="content">Append this text:</label>
+            <label for="content">Your additions:</label>
             <textarea id="content" name="content" rows="8" style="width:100%;"><?php echo htmlspecialchars($submitted_text); ?></textarea>
 <?php } else { ?>
             <label for="content">Post text:</label>
