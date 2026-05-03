@@ -27,9 +27,12 @@ if(!$thread) {
 $error_message = '';
 $success_message = '';
 $prefill_content = '';
+$quote_box_title = 'Post you are replying to:';
+$quote_box_html = do_RenderTopicContent($thread['content']);
 
 if(isset($_GET['quote_topic']) && $_GET['quote_topic'] !== '') {
     $prefill_content = '>>' . $thread_id . "\n\n";
+    $quote_box_title = 'Quoted topic post:';
 }
 
 if($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -90,6 +93,11 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST" id="reply-form">
         <fieldset>
             <legend>Compose Reply</legend>
+
+            <label><?php echo htmlspecialchars($quote_box_title); ?></label><br />
+            <div id="reply_context" class="body border" style="max-height: 260px; overflow-y: auto; margin-bottom: 10px;">
+                <?php echo $quote_box_html; ?>
+            </div>
             
             <label for="content">Your reply:</label>
             <textarea id="content" name="content" rows="10" cols="60" placeholder="Write your reply here... You can use markdown formatting."><?php echo htmlspecialchars(isset($reply_content) ? $reply_content : $prefill_content); ?></textarea>
