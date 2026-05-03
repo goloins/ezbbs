@@ -158,13 +158,13 @@ foreach(do_getHomePageMenu() as $menu_item) {
     </div>
 
     <!-- Replies section -->
-    <div id="replies"><h3> 
+    <div id="replies"> 
         <?php
         $replies = do_getRepliesForThread($thread_id);
         if($replies && $replies->num_rows > 0) {
             while($reply = $replies->fetch_assoc()) {
                 $reply_author = do_getUserById($reply['poster_id']);
-                echo '<div class="thread-post reply" id="reply_' . intval($reply['id']) . '"></h3>';
+                echo '<h3><div class="thread-post reply" id="reply_' . intval($reply['id']) . '"></h3>';
                 ob_start();
                 ezbbs_renderUserPanel($reply_author, $site);
                 echo ob_get_clean();
