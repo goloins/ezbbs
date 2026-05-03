@@ -429,6 +429,10 @@ function do_renderRevisionTemplateText($template, $owner_user_id, $edited_at){
         $msg = preg_replace('/%s/', $display_time_full, $msg, 1);
     }
 
+    // Appended content should store a plain-text prefix so it renders consistently
+    // in both topic and reply renderers regardless of HTML template formatting.
+    $msg = html_entity_decode(strip_tags($msg), ENT_QUOTES, 'UTF-8');
+    $msg = preg_replace('/\s+/', ' ', $msg);
     return trim($msg);
 }
 
