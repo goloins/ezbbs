@@ -485,9 +485,12 @@ p.caption {
     margin-top: 0.35em;
 }
 
-.post-revision-note .edited-indicator {
+.edited-indicator {
     color: #b30000;
     font-weight: 700;
+}
+
+.post-revision-note .edited-indicator {
     margin-right: 0.25em;
 }
 

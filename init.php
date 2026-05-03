@@ -27,6 +27,7 @@ $site = array(
     'edit_window_seconds' => 1800,
     'edit_text' => '$username <b>fucked around with</b> this post <i>$seconds</i>',
     'append_text' => '$username <b>remembered to add</b> some shit they forgot <i>$seconds</i>',
+    'append_separator_text' => 'OP Updated',
     'flair_consensus_min_votes' => 3,
     'disclaimer' => 'All trademarks and copyrights on this site are owned by their respective parties. All uploaded files and comments are the responsibility of their own posters.', //site disclaimer
     );
@@ -436,6 +437,20 @@ function do_renderRevisionTemplateText($template, $owner_user_id, $edited_at){
     return trim($msg);
 }
 
+function do_getAppendSeparatorMarker(){
+    return '[__APPEND_SEPARATOR__]';
+}
+
+function do_getAppendSeparatorHtml(){
+    global $site;
+    $separator_text = 'OP Updated';
+    if(isset($site['append_separator_text']) && trim((string)$site['append_separator_text']) !== '') {
+        $separator_text = trim((string)$site['append_separator_text']);
+    }
+    $separator_text = htmlspecialchars($separator_text, ENT_QUOTES, 'UTF-8');
+    return '--- <span class="edited-indicator">*</span> ' . $separator_text . ' <span class="edited-indicator">*</span> ---';
+}
+
 function do_getPostRevisionNoteHtml($is_edited, $edited_at, $owner_user_id = 0){
     global $site;
     $mode = intval($is_edited);
@@ -790,7 +805,7 @@ function do_updateTopicPostContent($thread_id, $editor_id, $submitted_content, $
         if($append_prefix === '') {
             $append_prefix = 'appended';
         }
-        $new_content = rtrim($current_content) . "\n\n---\n" . $append_prefix . ": " . $submitted_content;
+        $new_content = rtrim($current_content) . "\n\n" . do_getAppendSeparatorMarker() . "\n" . $append_prefix . ": " . $submitted_content;
         $edit_state = 2;
     }
 
@@ -831,7 +846,7 @@ function do_updateReplyPostContent($reply_id, $editor_id, $submitted_content, $m
         if($append_prefix === '') {
             $append_prefix = 'appended';
         }
-        $new_content = rtrim($current_content) . "\n\n---\n" . $append_prefix . ": " . $submitted_content;
+        $new_content = rtrim($current_content) . "\n\n" . do_getAppendSeparatorMarker() . "\n" . $append_prefix . ": " . $submitted_content;
         $edit_state = 2;
     }
 
@@ -1224,6 +1239,7 @@ function do_RenderTopicContent($topic_content){
     $topic_content = do_RenderMarkdownLinksInText($topic_content);
     $topic_content = do_RenderMarkdownFormattingInText($topic_content);
     $topic_content = do_RenderMarkdownCodeInText($topic_content);
+    $topic_content = str_replace(do_getAppendSeparatorMarker(), do_getAppendSeparatorHtml(), $topic_content);
     return nl2br($topic_content); // convert newlines to <br> for HTML rendering
 }
 
@@ -1236,6 +1252,7 @@ function do_RenderReplyText($reply_content, $reply_id){
     $reply_content = do_RenderMarkdownCodeInText($reply_content);
     $reply_content = do_RenderThreadLinkInReplyText($reply_content);
     $reply_content = do_AddTooltipWithReplySnippet($reply_content, $reply_id);
+    $reply_content = str_replace(do_getAppendSeparatorMarker(), do_getAppendSeparatorHtml(), $reply_content);
     return nl2br($reply_content); // convert newlines to <br> for HTML rendering
 }
 
