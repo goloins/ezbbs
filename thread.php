@@ -158,7 +158,7 @@ foreach(do_getHomePageMenu() as $menu_item) {
     </div>
 
     <!-- Replies section -->
-    <div id="replies">
+    <div id="replies"><h3> 
         <?php
         $replies = do_getRepliesForThread($thread_id);
         if($replies && $replies->num_rows > 0) {
@@ -171,7 +171,7 @@ foreach(do_getHomePageMenu() as $menu_item) {
                 echo '<div class="thread-post-main">';
                 echo '<h4 class="c">';
                 echo do_getFullyFormattedUsername($reply['poster_id']);
-                echo ' — <span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</span>';
+                echo ' — <span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</span></h3>';
                 echo ' <span class="reply_id unimportant">#' . intval($reply['id']) . '</span>';
                 echo '</h4>';
                 echo '<div class="body">' . do_RenderReplyText($reply['content'], $reply['id']) . '</div>';
