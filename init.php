@@ -443,12 +443,12 @@ function do_getAppendSeparatorMarker(){
 
 function do_getAppendSeparatorHtml(){
     global $site;
-    $separator_text = 'OP Updated';
+    $separator_text = $site['append_separator_text']; 
     if(isset($site['append_separator_text']) && trim((string)$site['append_separator_text']) !== '') {
         $separator_text = trim((string)$site['append_separator_text']);
     }
     $separator_text = htmlspecialchars($separator_text, ENT_QUOTES, 'UTF-8');
-    return '--- <span class="edited-indicator">*</span> ' . $separator_text . ' <span class="edited-indicator">*</span> ---';
+    return '<b>--- <span class="edited-indicator">*</span> ' . $separator_text . ' <span class="edited-indicator">*</span> ---</b>';
 }
 
 function do_getPostRevisionNoteHtml($is_edited, $edited_at, $owner_user_id = 0){
