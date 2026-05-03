@@ -14,7 +14,7 @@
 $site = array(
     'site_name' => 'EzBBS',
     'site_description' => 'A simple bbs engine for the small web',
-    'favicon_url' => 'assets/favicon.ico',
+    'favicon_url' => '/assets/favicon.ico',
     'site_url' => 'https://localhost/',
     'rss_url' => 'https://localhost/rss.xml', //note: site_url/catname/rss.xml works for cat specific feeds.
     'default_lemon_years' => 2, //number of years before lemon threads can be replied to
@@ -138,6 +138,24 @@ function do_getUserByUsername($username){
     return null;
 }
 
+function do_getUserByEmail($email){
+    global $go_sql;
+    $email = trim($email);
+    if($email === '') {
+        return null;
+    }
+
+    $stmt = $go_sql->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if($result->num_rows > 0) {
+        return $result->fetch_assoc();
+    }
+
+    return null;
+}
+
 
 function do_insertNewUser($supplied_username, $supplied_password, $supplied_email) {
     global $go_sql, $user;
@@ -202,7 +220,7 @@ function do_getHomePageMenu(){
     global $homepagemenu;
     $menu = $homepagemenu;
 
-    if(isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null) {
+    if(do_isLoggedIn()) {
         $unread = do_getUnreadPrivateMessageCount(intval($_SESSION['user_id']));
         if($unread > 0) {
             foreach($menu as &$item) {
@@ -213,6 +231,17 @@ function do_getHomePageMenu(){
             }
             unset($item);
         }
+
+        $menu[] = array('name' => 'Logout', 'url' => '/do/logout');
+    } else {
+        $menu = array_values(array_filter($menu, function($item) {
+            if(!isset($item['url'])) {
+                return true;
+            }
+            return $item['url'] !== '/new_topic' && $item['url'] !== '/inbox';
+        }));
+        $menu[] = array('name' => 'Login', 'url' => '/login');
+        $menu[] = array('name' => 'Sign Up', 'url' => '/signup');
     }
 
     return $menu;
@@ -349,6 +378,11 @@ function chk_IsUserModeratorOrAdmin($user_id) {
         return is_array($mod_scope) && count($mod_scope) > 0;
     }
     return false;
+}
+
+function chk_IsUserAdmin($user_id){
+    $u = do_getUserById($user_id);
+    return $u && !empty($u['isadmin']);
 }
 
 
@@ -857,6 +891,11 @@ function chk_DoesUserHaveKudosToGive($user_id){
 // we're return true/false based on if the post is allowed or not, and then we'll handle the error message in the thread/reply submission code.
 function chk_UserCanPostOutboundLinks($user_id, $post_content){
     global $go_sql, $site;
+
+    if(chk_IsUserAdmin($user_id)) {
+        return true;
+    }
+
     // Check for markdown links
     if(preg_match('/\[[^\]]+\]\((https?:\/\/[^\s]+)\)/', $post_content) || preg_match('/https?:\/\/[^\s]+/', $post_content)){
         // User is trying to post a link, check if they have enough posts
@@ -1587,16 +1626,196 @@ function do_clearUserBanNotifs($user_id){
 
 //login flow. core functions and checks to determine login status
 
+function do_isLoggedIn(){
+    return isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null;
+}
+
+function do_getCurrentUserId(){
+    if(!do_isLoggedIn()) {
+        return null;
+    }
+    return intval($_SESSION['user_id']);
+}
+
+function do_getPostLoginRedirect(){
+    $next = isset($_GET['next']) ? trim($_GET['next']) : '';
+    if($next === '' && isset($_POST['next'])) {
+        $next = trim($_POST['next']);
+    }
+    if($next === '' || strpos($next, '/') !== 0 || strpos($next, '//') === 0) {
+        return '/';
+    }
+    return $next;
+}
+
+function do_requireLogin($fallback = '/login'){
+    if(do_isLoggedIn()) {
+        return;
+    }
+    $next = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
+    $target = $fallback;
+    if(strpos($target, '?') === false) {
+        $target .= '?next=' . rawurlencode($next);
+    } else {
+        $target .= '&next=' . rawurlencode($next);
+    }
+    header('Location: ' . $target);
+    exit();
+}
+
+function do_supportsRememberTokens(){
+    global $go_sql;
+    $result = $go_sql->query("SHOW TABLES LIKE 'auth_tokens'");
+    return $result && $result->num_rows > 0;
+}
+
+function do_createRememberToken($user_id){
+    global $go_sql;
+    if(!do_supportsRememberTokens()) {
+        return;
+    }
+
+    $selector = bin2hex(random_bytes(12));
+    $token = bin2hex(random_bytes(32));
+    $token_hash = hash('sha256', $token);
+    $expires_at = time() + (60 * 60 * 24 * 30);
+
+    $stmt = $go_sql->prepare("INSERT INTO auth_tokens (user_id, selector, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)");
+    $created_at = time();
+    $stmt->bind_param("issii", $user_id, $selector, $token_hash, $expires_at, $created_at);
+    if($stmt->execute()) {
+        setcookie('remember_selector', $selector, $expires_at, '/', '', false, true);
+        setcookie('remember_token', $token, $expires_at, '/', '', false, true);
+    }
+}
+
+function do_clearRememberTokenCookies(){
+    setcookie('remember_selector', '', time() - 3600, '/', '', false, true);
+    setcookie('remember_token', '', time() - 3600, '/', '', false, true);
+    // legacy insecure cookies cleanup
+    setcookie('user_id', '', time() - 3600, '/');
+    setcookie('pw_hash', '', time() - 3600, '/');
+}
+
+function do_revokeRememberTokensForUser($user_id){
+    global $go_sql;
+    if(!$user_id || !do_supportsRememberTokens()) {
+        return;
+    }
+    $stmt = $go_sql->prepare("DELETE FROM auth_tokens WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+}
+
+function do_hydrateSessionUser($user_id){
+    global $go_sql, $user;
+    $stmt = $go_sql->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if($result->num_rows === 0) {
+        return false;
+    }
+
+    $db_user_data = $result->fetch_assoc();
+    $_SESSION['user_id'] = intval($db_user_data['id']);
+    $_SESSION['isloggedin'] = true;
+    $_SESSION['user'] = array_merge($user, $db_user_data);
+    return true;
+}
+
+function do_loginUser($user_id, $remember = false){
+    if(session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+
+    session_regenerate_id(true);
+    if(!do_hydrateSessionUser(intval($user_id))) {
+        return false;
+    }
+
+    do_clearRememberTokenCookies();
+    if($remember) {
+        do_createRememberToken(intval($user_id));
+    }
+    return true;
+}
+
+function do_tryRememberLogin(){
+    global $go_sql;
+    if(!do_supportsRememberTokens()) {
+        return false;
+    }
+    if(!isset($_COOKIE['remember_selector']) || !isset($_COOKIE['remember_token'])) {
+        return false;
+    }
+
+    $selector = trim($_COOKIE['remember_selector']);
+    $token = trim($_COOKIE['remember_token']);
+    if($selector === '' || $token === '') {
+        do_clearRememberTokenCookies();
+        return false;
+    }
+
+    $stmt = $go_sql->prepare("SELECT user_id, token_hash, expires_at FROM auth_tokens WHERE selector = ? LIMIT 1");
+    $stmt->bind_param("s", $selector);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if($result->num_rows === 0) {
+        do_clearRememberTokenCookies();
+        return false;
+    }
+
+    $row = $result->fetch_assoc();
+    if(intval($row['expires_at']) < time()) {
+        $delete_stmt = $go_sql->prepare("DELETE FROM auth_tokens WHERE selector = ?");
+        $delete_stmt->bind_param("s", $selector);
+        $delete_stmt->execute();
+        do_clearRememberTokenCookies();
+        return false;
+    }
+
+    $token_hash = hash('sha256', $token);
+    if(!hash_equals($row['token_hash'], $token_hash)) {
+        do_clearRememberTokenCookies();
+        return false;
+    }
+
+    return do_loginUser(intval($row['user_id']), true);
+}
+
+function do_attemptLoginByCredentials($identifier, $password, $remember = false){
+    $identifier = trim($identifier);
+    if($identifier === '' || $password === '') {
+        return false;
+    }
+
+    $candidate = do_getUserByUsername($identifier);
+    if(!$candidate && strpos($identifier, '@') !== false) {
+        $candidate = do_getUserByEmail($identifier);
+    }
+    if(!$candidate) {
+        return false;
+    }
+    if(!password_verify($password, $candidate['password'])) {
+        return false;
+    }
+
+    return do_loginUser(intval($candidate['id']), $remember);
+}
+
 function do_logout(){
     //this will log the user out by clearing their session and cookies.
     if(session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
 
+    $logout_user_id = do_getCurrentUserId();
+    do_revokeRememberTokensForUser($logout_user_id);
+
     session_unset();
     session_destroy();
-    setcookie('user_id', '', time() - 3600, '/');
-    setcookie('pw_hash', '', time() - 3600, '/');
+    do_clearRememberTokenCookies();
 }
 
 $islogged = false;
@@ -1605,38 +1824,12 @@ if(session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-if(isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null) {
+if(do_isLoggedIn()) {
     $islogged = true;
 }
 
-if(!$islogged && isset($_COOKIE['user_id']) && isset($_COOKIE['pw_hash'])){
-    $cookie_user_id = $_COOKIE['user_id'];
-    $cookie_pw_hash = $_COOKIE['pw_hash'];
-
-    // Fetch the user from the database
-    $stmt = $go_sql->prepare("SELECT id, password FROM users WHERE id = ?");
-    $stmt->bind_param("i", $cookie_user_id);
-    $stmt->execute();
-    $stmt->store_result();
-
-    if ($stmt->num_rows > 0) {
-        $stmt->bind_result($db_user_id, $db_password_hash);
-        $stmt->fetch();
-
-        // Verify the password hash from the cookie against the database hash
-        if (password_verify($cookie_pw_hash, $db_password_hash)) {
-            $_SESSION['user_id'] = $db_user_id; // Log the user in by setting the session user_id
-            $islogged = true;
-        } else {
-            // Invalid cookie, clear it
-            setcookie('user_id', '', time() - 3600, '/');
-            setcookie('pw_hash', '', time() - 3600, '/');
-        }
-    } else {
-        // User not found, clear the cookie
-        setcookie('user_id', '', time() - 3600, '/');
-        setcookie('pw_hash', '', time() - 3600, '/');
-    }
+if(!$islogged && do_tryRememberLogin()) {
+    $islogged = true;
 }
 
 if(!$islogged) {
@@ -1645,17 +1838,7 @@ if(!$islogged) {
 }
 
 if($islogged){
-    $_SESSION['isloggedin'] = true;
-    $_SESSION['user'] = $user; // Populate defaults
-    $stmt = $go_sql->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $db_user_data = $result->fetch_assoc();
-        // Merge database user data with default user data
-        $_SESSION['user'] = array_merge($_SESSION['user'], $db_user_data);
-    } else {
+    if(!do_hydrateSessionUser(intval($_SESSION['user_id']))) {
         $_SESSION['user_id'] = null;
         $_SESSION['isloggedin'] = false;
         $islogged = false;

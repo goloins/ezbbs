@@ -228,9 +228,9 @@ if($route_mode === 'topics') {
         <title><?php echo htmlspecialchars($body_title); ?> - <?php echo $site['site_name']; ?></title>
         <meta name="description" content="<?php echo $site['site_description']; ?>"/>
         <link rel="icon" type="image/gif" href="<?php echo $site['favicon_url']; ?>" />
-        <link rel="stylesheet" type="text/css" media="screen" href="assets/css/layout.css" />
-        <link rel="stylesheet" type="text/css" media="screen" href="assets/css/<?php echo $user['theme']; ?>.css" />
-        <link rel="stylesheet" type="text/css" media="screen" href="assets/css/vs.css" />
+        <link rel="stylesheet" type="text/css" media="screen" href="/assets/css/layout.css" />
+        <link rel="stylesheet" type="text/css" media="screen" href="/assets/css/<?php echo $user['theme']; ?>.css" />
+        <link rel="stylesheet" type="text/css" media="screen" href="/assets/css/vs.css" />
         <link rel="canonical" href="<?php echo $site['site_url']; ?>" />
     </head>
 <body class="page-index desktop-mode">

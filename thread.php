@@ -28,9 +28,9 @@ if(!$thread) {
 		<title><?php echo htmlspecialchars($thread['title']); ?> — <?php echo $site['site_name'];?></title>
                     <meta name="description" content="<?php echo $site['site_description'];?>"/>
                 <link rel="icon" type="image/gif" href="<?php echo $site['favicon_url'];?>" />
-		<link rel="stylesheet" type="text/css" media="screen" href="assets/css/layout.css" />
-		<link rel="stylesheet" type="text/css" media="screen" href="assets/css/<?php echo $user['theme'];?>.css" />
-		<link rel="stylesheet" type="text/css" media="screen" href="assets/css/vs.css" />
+		<link rel="stylesheet" type="text/css" media="screen" href="/assets/css/layout.css" />
+		<link rel="stylesheet" type="text/css" media="screen" href="/assets/css/<?php echo $user['theme'];?>.css" />
+		<link rel="stylesheet" type="text/css" media="screen" href="/assets/css/vs.css" />
 		        <link rel="canonical" href="<?php echo $site['site_url'];?>" />
 		</head>
 <body class="page-index desktop-mode">	<h1 class="top_text" id="logo">
@@ -61,19 +61,19 @@ foreach(do_getHomePageMenu() as $menu_item) {
 </span></strong></h3> 
     <div class="body"><?php echo do_RenderTopicContent($thread['content']); ?>
     <ul class="menu"><li><?php
-        echo '<a href="/compose_message/topic/' . $thread_id . '">PM</a></li>';
-
-        if(isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null) {
-            $is_watched = chk_IsThreadWatchedByUser($_SESSION['user_id'], $thread_id);
+        if(do_isLoggedIn()) {
+            echo '<a href="/compose_message/topic/' . $thread_id . '">PM</a></li>';
+            $is_watched = chk_IsThreadWatchedByUser(do_getCurrentUserId(), $thread_id);
             if($is_watched) {
                 echo '<li><a href="/forget_thread/' . $thread_id . '">Forget Thread</a></li>';
             } else {
                 echo '<li><a href="/watch_topic/' . $thread_id . '">Watch</a></li>';
             }
+            echo '<li><a href="/new_reply/' . $thread_id . '/quote_topic">Quote</a></li>';
+            echo '<li><a href="/new_reply/' . $thread_id . '" onclick="window.open(this.href,\'targetWindow\',\'width=700px,height=700px\'); return false;">Reply</a></li>';
+        } else {
+            echo '<a href="/login?next=' . rawurlencode('/thread/' . $thread_id) . '">Login to reply</a></li>';
         }
-
-        echo '<li><a href="/new_reply/' . $thread_id . '/quote_topic">Quote</a></li>';
-        echo '<li><a href="/new_reply/' . $thread_id . '" onclick="window.open(this.href,\'targetWindow\',\'width=700px,height=700px\'); return false;">Reply</a></li>';
 
 
 //display all tags for the thread.
@@ -110,7 +110,11 @@ foreach(do_getHomePageMenu() as $menu_item) {
     </div>
 
     <div class="reply-action">
+<?php if(do_isLoggedIn()) { ?>
         <a href="/new_reply/<?php echo $thread_id; ?>" class="button">Reply to this thread</a>
+<?php } else { ?>
+        <a href="/login?next=<?php echo rawurlencode('/thread/' . $thread_id); ?>" class="button">Login to reply</a>
+<?php } ?>
     </div>
 
 </div><!-- body_wrapper -->

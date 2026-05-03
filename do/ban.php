@@ -11,13 +11,9 @@
 
 
 include('../init.php');
+do_requireLogin('/login');
 
-if(!isset($_SESSION['user_id']) || $_SESSION['user_id'] === null) {
-	http_response_code(403);
-	die('ezbbs error: you must be logged in.');
-}
-
-if(!chk_IsUserModeratorOrAdmin($_SESSION['user_id'])) {
+if(!chk_IsUserModeratorOrAdmin(do_getCurrentUserId())) {
 	http_response_code(403);
 	die('ezbbs error: moderator privileges required.');
 }
@@ -32,7 +28,7 @@ if($userid <= 0 || $banreason === '') {
 	die('ezbbs error: invalid ban request.');
 }
 
-$moderatorId = $_SESSION['user_id'];
+$moderatorId = do_getCurrentUserId();
 
 //do the thing or die trying.
 do_setuserbanned($userid, $banlength, $banreason) or die('ezbbs error: failed to ban user. tell admin to check the logs.');

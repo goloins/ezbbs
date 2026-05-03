@@ -9,6 +9,8 @@ RewriteRule ^ - [L]
 
 # Homepage and menu/list pages.
 RewriteRule ^$ index.php [L,QSA]
+RewriteRule ^login/?$ login.php [L,QSA]
+RewriteRule ^signup/?$ signup.php [L,QSA]
 RewriteRule ^new_topic/?$ new_topic.php [L,QSA]
 RewriteRule ^(hot_topics|topics|bumps|replies|folks|search|stuff)/?$ index.php?url=$1 [L,QSA]
 RewriteRule ^cat/([0-9]+)/?$ index.php?url=cat/$1 [L,QSA]

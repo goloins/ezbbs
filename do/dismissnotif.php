@@ -11,11 +11,7 @@
 
 
 include('../init.php');
-
-if(!isset($_SESSION['user_id']) || $_SESSION['user_id'] === null) {
-	http_response_code(403);
-	die('ezbbs error: you must be logged in.');
-}
+do_requireLogin('/login');
 
 $notifId = intval($_GET['id']);
 
@@ -33,13 +29,13 @@ if($result->num_rows === 0) {
 	die('ezbbs error: notification not found.');
 }
 $row = $result->fetch_assoc();
-if(intval($row['user_id']) !== intval($_SESSION['user_id']) && !chk_IsUserModeratorOrAdmin($_SESSION['user_id'])) {
+if(intval($row['user_id']) !== intval(do_getCurrentUserId()) && !chk_IsUserModeratorOrAdmin(do_getCurrentUserId())) {
 	http_response_code(403);
 	die('ezbbs error: not allowed to dismiss this notification.');
 }
 
 do_setnotifread($notifId) or die('ezbbs error: failed to mark notification as read. tell admin to check the logs.');
-do_logentry("Notice", "Notification ".$notifId." set as read by user ".$_SESSION['user_id']);
+do_logentry("Notice", "Notification ".$notifId." set as read by user ".do_getCurrentUserId());
 
 // a good place to add logging for moderation purposes is here in a 'do' file since
 // most user simple actions are going to be handled by one of these style files.

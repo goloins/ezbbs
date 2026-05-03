@@ -1,10 +1,6 @@
 <?php
 require_once 'init.php';
-
-if(!isset($_SESSION['user_id']) || $_SESSION['user_id'] === null) {
-    header('Location: /');
-    exit();
-}
+do_requireLogin('/login');
 
 if(!chk_IsUserAdmin($_SESSION['user_id'])) {
     http_response_code(403);
@@ -17,8 +13,8 @@ if(!chk_IsUserAdmin($_SESSION['user_id'])) {
         <title>Admin - <?php echo $site['site_name']; ?></title>
         <meta name="description" content="<?php echo $site['site_description']; ?>"/>
         <link rel="icon" type="image/gif" href="<?php echo $site['favicon_url']; ?>" />
-        <link rel="stylesheet" type="text/css" media="screen" href="assets/css/layout.css" />
-        <link rel="stylesheet" type="text/css" media="screen" href="assets/css/<?php echo $user['theme']; ?>.css" />
+        <link rel="stylesheet" type="text/css" media="screen" href="/assets/css/layout.css" />
+        <link rel="stylesheet" type="text/css" media="screen" href="/assets/css/<?php echo $user['theme']; ?>.css" />
     </head>
 <body class="page-index desktop-mode">
     <h1 class="top_text" id="logo">
