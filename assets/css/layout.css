@@ -590,7 +590,50 @@ a.video {
 
 .topic-row-flairs a,
 .topic-row-flairs span {
-    margin-left: 0.35em;
+    margin-left: 0.25em;
+}
+
+.flair-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.18em;
+    padding: 0.04em 0.42em;
+    border: 1px solid #b9b9b9;
+    border-radius: 999px;
+    font-size: 10px;
+    line-height: 1.2;
+    text-decoration: none;
+}
+
+.flair-chip-icon {
+    font-weight: 700;
+}
+
+.flair-chip-count {
+    font-weight: 700;
+}
+
+.flair-chip-positive {
+    background-color: #f0f8f0;
+    border-color: #9dbf9d;
+}
+
+.flair-chip-negative {
+    background-color: #fff3f3;
+    border-color: #d6a5a5;
+}
+
+.flair-chip-link:hover {
+    background-color: #ececec;
+}
+
+.flair-chip-voted {
+    border-style: solid;
+    box-shadow: inset 0 0 0 1px #888;
+}
+
+.flair-chip-locked {
+    opacity: 0.72;
 }
 
 .meta-sep {

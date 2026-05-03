@@ -159,12 +159,14 @@ echo $topic_body_html;
                     $fid = intval($flair_option['flair_id']);
                     $already_voted = isset($thread_user_flair_votes[$fid]);
                     $vote_url = '/do/flair/' . $thread_id . '/' . $fid;
-                    $vote_label = htmlspecialchars($flair_option['name']) . ' (' . intval($flair_option['count']) . ')';
+                    $chip_tone = !empty($flair_option['positive']) ? 'flair-chip-positive' : 'flair-chip-negative';
+                    $chip_title = htmlspecialchars($flair_option['name'] . ': ' . $flair_option['description'] . ' (' . intval($flair_option['count']) . ')');
+                    $chip_inner = '<span class="flair-chip-icon" aria-hidden="true">' . $flair_option['icon'] . '</span><span class="flair-chip-count">' . intval($flair_option['count']) . '</span>';
                     if($already_voted || $thread_user_has_flair_vote) {
-                        $vote_title = $already_voted ? 'You voted this flair.' : 'You already voted a flair on this thread.';
-                        echo '<li><span title="' . $vote_title . '">' . $vote_label . '</span></li>';
+                        $chip_state = $already_voted ? 'flair-chip-voted' : 'flair-chip-locked';
+                        echo '<li><span class="flair-chip ' . $chip_tone . ' ' . $chip_state . '" title="' . $chip_title . '">' . $chip_inner . '</span></li>';
                     } else {
-                        echo '<li><a href="' . $vote_url . '" title="' . htmlspecialchars($flair_option['description']) . '">' . $vote_label . '</a></li>';
+                        echo '<li><a class="flair-chip flair-chip-link ' . $chip_tone . '" href="' . $vote_url . '" title="' . $chip_title . '">' . $chip_inner . '</a></li>';
                     }
                 }
             }

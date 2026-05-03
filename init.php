@@ -1527,6 +1527,7 @@ function do_getFlairBreakdownForPost($thread_id){
             'flair_id' => $fid,
             'name' => $meta['name'],
             'description' => $meta['description'],
+            'icon' => isset($meta['icon']) ? $meta['icon'] : '&#9679;',
             'positive' => !empty($meta['positive']),
             'count' => $count
         );
@@ -1668,27 +1669,32 @@ $postFlairs = array(
     1 => array(
         'name' => 'Funny',
         'description' => 'This post is funny.',
+        'icon' => '&#9786;',
         'positive' => true
     ),
     2 => array(
         'name' => 'Informative',
         'description' => 'This post is informative.',
+        'icon' => '&#8505;',
         'positive' => true
     ),
     3 => array(
         'name' => 'Insightful',
         'description' => 'This post is insightful.',
+        'icon' => '&#128161;',
         'positive' => true
     ),  
     
     4 => array(
         'name' => 'Hell nah',
         'description' => 'I disagree with this post.',
+        'icon' => '&#10060;',
         'positive' => false
     ),
     5 => array(
         'name' => 'Wut',
         'description' => 'I am confused by this post.',
+        'icon' => '&#10067;',
         'positive' => false
     ),
 );

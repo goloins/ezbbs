@@ -189,11 +189,16 @@ function ezbbs_render_topic_row($topic, $site, $user, $categories) {
     if(count($flair_breakdown) > 0) {
         foreach($flair_breakdown as $flair_option) {
             $fid = intval($flair_option['flair_id']);
-            $flair_label = htmlspecialchars($flair_option['name']) . ' (' . intval($flair_option['count']) . ')';
+            $already_voted = isset($user_flair_votes[$fid]);
+            $chip_tone = !empty($flair_option['positive']) ? 'flair-chip-positive' : 'flair-chip-negative';
+            $chip_title = htmlspecialchars($flair_option['name'] . ': ' . $flair_option['description'] . ' (' . intval($flair_option['count']) . ')');
+            $chip_inner = '<span class="flair-chip-icon" aria-hidden="true">' . $flair_option['icon'] . '</span><span class="flair-chip-count">' . intval($flair_option['count']) . '</span>';
+
             if($can_vote_flairs && !$user_has_flair_vote) {
-                $meta_right .= '<a href="/do/flair/' . $topic_id . '/' . $fid . '" title="' . htmlspecialchars($flair_option['description']) . '">' . $flair_label . '</a> ';
+                $meta_right .= '<a class="flair-chip flair-chip-link ' . $chip_tone . '" href="/do/flair/' . $topic_id . '/' . $fid . '" title="' . $chip_title . '">' . $chip_inner . '</a>';
             } else {
-                $meta_right .= '<span class="unimportant">' . $flair_label . '</span> ';
+                $chip_state = $already_voted ? 'flair-chip-voted' : 'flair-chip-locked';
+                $meta_right .= '<span class="flair-chip ' . $chip_tone . ' ' . $chip_state . '" title="' . $chip_title . '">' . $chip_inner . '</span>';
             }
         }
     }
