@@ -11,7 +11,7 @@ CREATE TABLE post_flairs (
     KEY idx_post_flairs_thread_id (thread_id),
     KEY idx_post_flairs_flair_id (flair_id),
     KEY idx_post_flairs_user_id (user_id),
-    UNIQUE KEY unique_user_flair_per_thread (thread_id, flair_id, user_id)
+    UNIQUE KEY unique_user_flair_per_thread (thread_id, user_id)
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;

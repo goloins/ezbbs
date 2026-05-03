@@ -108,7 +108,6 @@ function ezbbs_render_topic_row($topic, $site, $user, $categories) {
     $can_vote_flairs = do_isLoggedIn() && intval($topic['poster_id']) !== intval($current_user_id);
     $flair_breakdown = do_getFlairBreakdownForPost($topic_id);
     $user_flair_votes = $can_vote_flairs ? do_getUserFlairVotesForThread($topic_id, $current_user_id) : array();
-    $user_has_flair_vote = count($user_flair_votes) > 0;
 
     $replies_count = intval($topic['replies_count']);
     $visits_count = intval($topic['visits_count']);
@@ -192,10 +191,11 @@ function ezbbs_render_topic_row($topic, $site, $user, $categories) {
             $already_voted = isset($user_flair_votes[$fid]);
             $chip_tone = !empty($flair_option['positive']) ? 'flair-chip-positive' : 'flair-chip-negative';
             $chip_title = htmlspecialchars($flair_option['name'] . ': ' . $flair_option['description'] . ' (' . intval($flair_option['count']) . ')');
-            $chip_inner = '<span class="flair-chip-icon" aria-hidden="true">' . $flair_option['icon'] . '</span><span class="flair-chip-count">' . intval($flair_option['count']) . '</span>';
+            $chip_inner = '<span class="flair-chip-icon" aria-hidden="true">' . htmlspecialchars((string)$flair_option['icon']) . '</span><span class="flair-chip-count">' . intval($flair_option['count']) . '</span>';
 
-            if($can_vote_flairs && !$user_has_flair_vote) {
-                $meta_right .= '<a class="flair-chip flair-chip-link ' . $chip_tone . '" href="/do/flair/' . $topic_id . '/' . $fid . '" title="' . $chip_title . '">' . $chip_inner . '</a>';
+            if($can_vote_flairs) {
+                $chip_state = $already_voted ? 'flair-chip-voted' : '';
+                $meta_right .= '<a class="flair-chip flair-chip-link ' . $chip_tone . ' ' . $chip_state . '" href="/do/flair/' . $topic_id . '/' . $fid . '" title="' . $chip_title . '">' . $chip_inner . '</a>';
             } else {
                 $chip_state = $already_voted ? 'flair-chip-voted' : 'flair-chip-locked';
                 $meta_right .= '<span class="flair-chip ' . $chip_tone . ' ' . $chip_state . '" title="' . $chip_title . '">' . $chip_inner . '</span>';

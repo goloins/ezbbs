@@ -1575,16 +1575,15 @@ function do_voteFlairForThread($thread_id, $flair_id, $user_id){
         return false;
     }
 
-    $existing_stmt = $go_sql->prepare("SELECT id FROM post_flairs WHERE thread_id = ? AND user_id = ? LIMIT 1");
-    $existing_stmt->bind_param("ii", $thread_id, $user_id);
-    $existing_stmt->execute();
-    $existing_result = $existing_stmt->get_result();
-    if($existing_result->num_rows > 0) {
+    $created_at = time();
+    // One flair per user per thread: replace prior vote when user picks a new flair.
+    $delete_stmt = $go_sql->prepare("DELETE FROM post_flairs WHERE thread_id = ? AND user_id = ?");
+    $delete_stmt->bind_param("ii", $thread_id, $user_id);
+    if(!$delete_stmt->execute()) {
         return false;
     }
 
-    $created_at = time();
-    $stmt = $go_sql->prepare("INSERT INTO post_flairs (thread_id, flair_id, user_id, created_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE created_at = VALUES(created_at)");
+    $stmt = $go_sql->prepare("INSERT INTO post_flairs (thread_id, flair_id, user_id, created_at) VALUES (?, ?, ?, ?)");
     $stmt->bind_param("iiii", $thread_id, $flair_id, $user_id, $created_at);
     return $stmt->execute();
 }
@@ -1669,32 +1668,32 @@ $postFlairs = array(
     1 => array(
         'name' => 'Funny',
         'description' => 'This post is funny.',
-        'icon' => '&#9786;',
+        'icon' => 'ha',
         'positive' => true
     ),
     2 => array(
         'name' => 'Informative',
         'description' => 'This post is informative.',
-        'icon' => '&#8505;',
+        'icon' => 'hm',
         'positive' => true
     ),
     3 => array(
         'name' => 'Insightful',
         'description' => 'This post is insightful.',
-        'icon' => '&#128161;',
+        'icon' => '!!',
         'positive' => true
     ),  
     
     4 => array(
         'name' => 'Hell nah',
         'description' => 'I disagree with this post.',
-        'icon' => '&#10060;',
+        'icon' => 'no',
         'positive' => false
     ),
     5 => array(
         'name' => 'Wut',
         'description' => 'I am confused by this post.',
-        'icon' => '&#10067;',
+        'icon' => '??',
         'positive' => false
     ),
 );

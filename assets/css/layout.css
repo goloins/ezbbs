@@ -599,7 +599,7 @@ a.video {
     gap: 0.18em;
     padding: 0.04em 0.42em;
     border: 1px solid #b9b9b9;
-    border-radius: 999px;
+    border-radius: 2px;
     font-size: 10px;
     line-height: 1.2;
     text-decoration: none;
@@ -607,6 +607,8 @@ a.video {
 
 .flair-chip-icon {
     font-weight: 700;
+    min-width: 1.5em;
+    text-align: center;
 }
 
 .flair-chip-count {

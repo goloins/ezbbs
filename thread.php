@@ -107,7 +107,6 @@ foreach(do_getHomePageMenu() as $menu_item) {
 <?php $topic_edit_label = do_isPostWithinEditWindow($thread['created_at']) ? 'Edit' : 'Append'; ?>
 <?php $thread_flair_breakdown = do_getFlairBreakdownForPost($thread_id); ?>
 <?php $thread_user_flair_votes = do_isLoggedIn() ? do_getUserFlairVotesForThread($thread_id, $current_user_id) : array(); ?>
-<?php $thread_user_has_flair_vote = count($thread_user_flair_votes) > 0; ?>
 <?php $thread_is_party = intval($thread['isParty']) === 1; ?>
     <div class="thread-post" id="topic_<?php echo $thread_id; ?>">
 <?php ezbbs_renderUserPanel($topic_author, $site); ?>
@@ -161,13 +160,9 @@ echo $topic_body_html;
                     $vote_url = '/do/flair/' . $thread_id . '/' . $fid;
                     $chip_tone = !empty($flair_option['positive']) ? 'flair-chip-positive' : 'flair-chip-negative';
                     $chip_title = htmlspecialchars($flair_option['name'] . ': ' . $flair_option['description'] . ' (' . intval($flair_option['count']) . ')');
-                    $chip_inner = '<span class="flair-chip-icon" aria-hidden="true">' . $flair_option['icon'] . '</span><span class="flair-chip-count">' . intval($flair_option['count']) . '</span>';
-                    if($already_voted || $thread_user_has_flair_vote) {
-                        $chip_state = $already_voted ? 'flair-chip-voted' : 'flair-chip-locked';
-                        echo '<li><span class="flair-chip ' . $chip_tone . ' ' . $chip_state . '" title="' . $chip_title . '">' . $chip_inner . '</span></li>';
-                    } else {
-                        echo '<li><a class="flair-chip flair-chip-link ' . $chip_tone . '" href="' . $vote_url . '" title="' . $chip_title . '">' . $chip_inner . '</a></li>';
-                    }
+                    $chip_inner = '<span class="flair-chip-icon" aria-hidden="true">' . htmlspecialchars((string)$flair_option['icon']) . '</span><span class="flair-chip-count">' . intval($flair_option['count']) . '</span>';
+                    $chip_state = $already_voted ? 'flair-chip-voted' : '';
+                    echo '<li><a class="flair-chip flair-chip-link ' . $chip_tone . ' ' . $chip_state . '" href="' . $vote_url . '" title="' . $chip_title . '">' . $chip_inner . '</a></li>';
                 }
             }
             if($can_modify_topic) {
