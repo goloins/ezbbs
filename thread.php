@@ -98,6 +98,7 @@ foreach(do_getHomePageMenu() as $menu_item) {
 </div>
 <div id="body_wrapper">
     <h2 id="body_title">
+        <?php if(intval($thread['isPinned']) === 1) { ?><span class="thread-pin help" title="Pinned topic">&#128204;</span> <?php } ?>
 		<span class="pre_topic">Topic:</span> <?php echo htmlspecialchars($thread['title']); ?></h2>
 
 <?php $topic_author = do_getUserById($thread['poster_id']); ?>
@@ -107,6 +108,7 @@ foreach(do_getHomePageMenu() as $menu_item) {
 <?php $thread_flair_breakdown = do_getFlairBreakdownForPost($thread_id); ?>
 <?php $thread_user_flair_votes = do_isLoggedIn() ? do_getUserFlairVotesForThread($thread_id, $current_user_id) : array(); ?>
 <?php $thread_user_has_flair_vote = count($thread_user_flair_votes) > 0; ?>
+<?php $thread_is_party = intval($thread['isParty']) === 1; ?>
     <div class="thread-post" id="topic_<?php echo $thread_id; ?>">
 <?php ezbbs_renderUserPanel($topic_author, $site); ?>
         <div class="thread-post-main">
@@ -183,6 +185,7 @@ echo $topic_body_html;
         }
         ?>   
                 </ul>
+<?php if($thread_is_party) { ?><div class="party-ban-warning">USER WAS BANNED FOR THIS POST</div><?php } ?>
             </div>
         </div>
     </div>
@@ -210,6 +213,9 @@ echo $topic_body_html;
                 echo do_getPostRevisionNoteHtml(isset($reply['is_edited']) ? $reply['is_edited'] : 0, isset($reply['edited_at']) ? $reply['edited_at'] : 0, isset($reply['poster_id']) ? $reply['poster_id'] : 0);
                 if($can_modify_reply) {
                     echo '<ul class="menu"><li><a href="/edit_post/reply/' . intval($reply['id']) . '">' . $reply_edit_label . '</a></li></ul>';
+                }
+                if($thread_is_party) {
+                    echo '<div class="party-ban-warning">USER WAS BANNED FOR THIS POST</div>';
                 }
                 echo '</div>';
                 echo '</div>';

@@ -448,7 +448,7 @@ function do_getAppendSeparatorHtml(){
         $separator_text = trim((string)$site['append_separator_text']);
     }
     $separator_text = htmlspecialchars($separator_text, ENT_QUOTES, 'UTF-8');
-    return '<b>--- <span class="edited-indicator">*</span> ' . $separator_text . ' <span class="edited-indicator">*</span> ---</b>';
+    return '<div class="append-separator"><span class="append-separator-rule">===</span> <span class="edited-indicator">*</span> ' . $separator_text . ' <span class="edited-indicator">*</span> <span class="append-separator-rule">===</span></div>';
 }
 
 function do_getPostRevisionNoteHtml($is_edited, $edited_at, $owner_user_id = 0){
@@ -522,7 +522,7 @@ function do_getTopics($page){
         $page = 1;
     }
     $offset = ($page - 1) * $topics_per_page;
-    $stmt = $go_sql->prepare("SELECT * FROM topics ORDER BY last_bump DESC LIMIT ?, ?");
+    $stmt = $go_sql->prepare("SELECT * FROM topics ORDER BY isPinned DESC, last_bump DESC LIMIT ?, ?");
     $stmt->bind_param("ii", $offset, $topics_per_page);
     $stmt->execute();
     return $stmt->get_result();
@@ -678,7 +678,7 @@ function do_getAllThreadsInCategory($category_id, $page){
     global $go_sql;
     $topics_per_page = 20;
     $offset = ($page - 1) * $topics_per_page;
-    $stmt = $go_sql->prepare("SELECT * FROM topics WHERE category_id = ? ORDER BY last_bump DESC LIMIT ?, ?");
+    $stmt = $go_sql->prepare("SELECT * FROM topics WHERE category_id = ? ORDER BY isPinned DESC, last_bump DESC LIMIT ?, ?");
     $stmt->bind_param("iii", $category_id, $offset, $topics_per_page);
     $stmt->execute();
     return $stmt->get_result();
@@ -737,7 +737,7 @@ function do_getAllThreadsInTag($tag){
     // JSON_CONTAINS searches for a value within a JSON document
     // tags is a JSON array of strings like ["tag1", "tag2"], so we search for the tag as a JSON string
     $tag_json = json_encode($tag); // convert tag to JSON format for the search
-    $stmt = $go_sql->prepare("SELECT * FROM topics WHERE JSON_CONTAINS(tags, ?) ORDER BY last_bump DESC LIMIT 20");
+    $stmt = $go_sql->prepare("SELECT * FROM topics WHERE JSON_CONTAINS(tags, ?) ORDER BY isPinned DESC, last_bump DESC LIMIT 20");
     $stmt->bind_param("s", $tag_json);
     $stmt->execute();
     return $stmt->get_result();

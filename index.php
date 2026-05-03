@@ -64,6 +64,24 @@ if($route_mode === 'new_topic' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+function ezbbs_get_visit_link_for_topic($topic) {
+    if(!isset($topic['attached_links'])) {
+        return '';
+    }
+    $links = json_decode($topic['attached_links'], true);
+    if(!is_array($links) || count($links) === 0) {
+        return '';
+    }
+    $primary = trim((string)$links[0]);
+    if($primary === '') {
+        return '';
+    }
+    if(strpos($primary, 'http://') !== 0 && strpos($primary, 'https://') !== 0) {
+        $primary = 'https://' . ltrim($primary, '/');
+    }
+    return $primary;
+}
+
 function ezbbs_render_topic_row($topic, $site, $user, $categories) {
     $poster = do_getUserById($topic['poster_id']);
     if(!$poster) {
@@ -78,9 +96,19 @@ function ezbbs_render_topic_row($topic, $site, $user, $categories) {
 
     $isLemoned = chk_ThreadLemoned($topic['id']);
     $isParty = chk_ThreadParty($topic['id']);
+    $isPinned = chk_ThreadPinned($topic['id']);
     $isArchived = chk_ThreadArchived($topic['id']);
     $isLocked = chk_ThreadLocked($topic['id']);
     $isChanlike = chk_ThreadChanlike($topic['id']);
+    $topic_id = intval($topic['id']);
+    $thread_url = '/topic/' . $topic_id;
+    $visit_url = ezbbs_get_visit_link_for_topic($topic);
+
+    $current_user_id = do_getCurrentUserId();
+    $can_vote_flairs = do_isLoggedIn() && intval($topic['poster_id']) !== intval($current_user_id);
+    $flair_breakdown = do_getFlairBreakdownForPost($topic_id);
+    $user_flair_votes = $can_vote_flairs ? do_getUserFlairVotesForThread($topic_id, $current_user_id) : array();
+    $user_has_flair_vote = count($user_flair_votes) > 0;
 
     $replies_count = intval($topic['replies_count']);
     $visits_count = intval($topic['visits_count']);
@@ -142,12 +170,42 @@ function ezbbs_render_topic_row($topic, $site, $user, $categories) {
     }
     echo '</td>';
 
-    echo '<td class="topic_headline"><a title="' . htmlspecialchars(substr($topic['title'], 0, $site['topic_preview_length'])) . '" href="/topic/' . intval($topic['id']) . '">' . $topic_title . '</a></td>';
+    $topic_headline = '<a title="' . htmlspecialchars(substr($topic['title'], 0, $site['topic_preview_length'])) . '" href="' . $thread_url . '">' . $topic_title . '</a>';
+    if($isPinned) {
+        $topic_headline = '<span class="topic-pin help" title="Pinned topic">&#128204;</span> ' . $topic_headline;
+    }
+
+    $share_url = $thread_url;
+    $email_url = 'mailto:?subject=' . rawurlencode('Topic: ' . $topic['title']) . '&body=' . rawurlencode($site['site_url'] . ltrim($thread_url, '/'));
+
+    $meta_left = '<a href="' . $share_url . '">share</a> <span class="meta-sep">|</span> <a href="' . $email_url . '">email</a> <span class="meta-sep">|</span> <a href="/new_reply/' . $topic_id . '">reply</a>';
+    if($visit_url !== '') {
+        $meta_left .= ' <span class="meta-sep">|</span> <a href="' . htmlspecialchars($visit_url) . '" target="_blank" rel="noopener noreferrer">visit</a>';
+    } else {
+        $meta_left .= ' <span class="meta-sep">|</span> <span class="unimportant">visit</span>';
+    }
+
+    $meta_right = '';
+    if(count($flair_breakdown) > 0) {
+        foreach($flair_breakdown as $flair_option) {
+            $fid = intval($flair_option['flair_id']);
+            $flair_label = htmlspecialchars($flair_option['name']) . ' (' . intval($flair_option['count']) . ')';
+            if($can_vote_flairs && !$user_has_flair_vote) {
+                $meta_right .= '<a href="/do/flair/' . $topic_id . '/' . $fid . '" title="' . htmlspecialchars($flair_option['description']) . '">' . $flair_label . '</a> ';
+            } else {
+                $meta_right .= '<span class="unimportant">' . $flair_label . '</span> ';
+            }
+        }
+    }
+
+    echo '<td class="topic_headline">' . $topic_headline;
+    echo '<div class="topic-row-subline"><span class="topic-row-actions">' . $meta_left . '</span><span class="topic-row-flairs">' . trim($meta_right) . '</span></div>';
+    echo '</td>';
     echo '<td class="minimal"><a href="' . $posterProfileLink . '">' . $poster_rendered . '</a></td>';
     echo '<td class="minimal"><strong>' . $replies_count . '</strong></td>';
     echo '<td class="minimal">' . $visits_count . '</td>';
     echo '<td class="minimal"><span class="help" title="' . $last_bump_full . '">' . htmlspecialchars($time_ago) . '</span></td>';
-    echo '<td class="minimal"><a href="/cat/' . intval($topic['category_id']) . '">in ' . htmlspecialchars($category_name) . '</a></td>';
+    echo '<td class="minimal"><a href="/cat/' . intval($topic['category_id']) . '">' . htmlspecialchars($category_name) . '</a></td>';
     echo '</tr>';
 }
 
@@ -166,17 +224,17 @@ if($route_mode === 'topics') {
     $topics_result = do_getTopics($page);
 } elseif($route_mode === 'hot_topics') {
     $body_title = 'Hot Topics';
-    $stmt = $go_sql->prepare('SELECT * FROM topics ORDER BY (replies_count * 2 + visits_count) DESC, last_bump DESC LIMIT 20');
+    $stmt = $go_sql->prepare('SELECT * FROM topics ORDER BY isPinned DESC, (replies_count * 2 + visits_count) DESC, last_bump DESC LIMIT 20');
     $stmt->execute();
     $topics_result = $stmt->get_result();
 } elseif($route_mode === 'bumps') {
     $body_title = 'Recent Bumps';
-    $stmt = $go_sql->prepare('SELECT * FROM topics ORDER BY last_bump DESC LIMIT 20');
+    $stmt = $go_sql->prepare('SELECT * FROM topics ORDER BY isPinned DESC, last_bump DESC LIMIT 20');
     $stmt->execute();
     $topics_result = $stmt->get_result();
 } elseif($route_mode === 'replies') {
     $body_title = 'Most Replied Topics';
-    $stmt = $go_sql->prepare('SELECT * FROM topics ORDER BY replies_count DESC, last_bump DESC LIMIT 20');
+    $stmt = $go_sql->prepare('SELECT * FROM topics ORDER BY isPinned DESC, replies_count DESC, last_bump DESC LIMIT 20');
     $stmt->execute();
     $topics_result = $stmt->get_result();
 
@@ -198,7 +256,7 @@ if($route_mode === 'topics') {
 } elseif($route_mode === 'search') {
     $body_title = 'Search';
     if($search_term !== '') {
-        $stmt_topics = $go_sql->prepare('SELECT * FROM topics WHERE title LIKE CONCAT("%", ?, "%") OR content LIKE CONCAT("%", ?, "%") ORDER BY last_bump DESC LIMIT 50');
+        $stmt_topics = $go_sql->prepare('SELECT * FROM topics WHERE title LIKE CONCAT("%", ?, "%") OR content LIKE CONCAT("%", ?, "%") ORDER BY isPinned DESC, last_bump DESC LIMIT 50');
         $stmt_topics->bind_param('ss', $search_term, $search_term);
         $stmt_topics->execute();
         $search_topics_result = $stmt_topics->get_result();

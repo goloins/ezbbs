@@ -78,6 +78,19 @@ body {
     margin-bottom: 0.25em;
 }
 
+.thread-pin,
+.topic-pin {
+    font-size: 13px;
+}
+
+.party-ban-warning {
+    margin-top: 0.45em;
+    color: #b30000;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
 @media (max-width: 780px) {
     .thread-post {
         display: block;
@@ -86,6 +99,16 @@ body {
     .thread-user-panel {
         width: auto;
         margin-bottom: 0.6em;
+    }
+
+    .topic-row-subline {
+        display: block;
+    }
+
+    .topic-row-flairs {
+        display: block;
+        margin-top: 0.2em;
+        text-align: left;
     }
 }
 
@@ -490,6 +513,26 @@ p.caption {
     font-weight: 700;
 }
 
+.append-separator {
+    display: inline-block;
+    margin: 0.65em 0 0.45em;
+    padding: 0.2em 0.5em;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border: 1px solid #c7a8a8;
+    background-color: #fff4f4;
+}
+
+.append-separator .append-separator-rule {
+    color: #8a5555;
+}
+
+.append-separator .edited-indicator {
+    margin: 0 0.2em;
+}
+
 .post-revision-note .edited-indicator {
     margin-right: 0.25em;
 }
@@ -525,6 +568,33 @@ a.video {
 
 .topic_headline a:visited, .topic_headline .visited {
     font-weight:400 !important;
+}
+
+.topic-row-subline {
+    margin-top: 0.25em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5em;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.topic-row-actions {
+    white-space: nowrap;
+}
+
+.topic-row-flairs {
+    text-align: right;
+}
+
+.topic-row-flairs a,
+.topic-row-flairs span {
+    margin-left: 0.35em;
+}
+
+.meta-sep {
+    color: #777;
 }
 
 .cited:before {
