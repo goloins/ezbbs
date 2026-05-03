@@ -7,7 +7,3 @@ CREATE TABLE notifications (
     created_at INT NOT NULL DEFAULT UNIX_TIMESTAMP(),
     INDEX (user_id, is_read)
 );
-
--- Optional FK if you want referential integrity:
---ALTER TABLE notifications
---  ADD CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
