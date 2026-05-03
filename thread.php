@@ -159,7 +159,6 @@ foreach(do_getHomePageMenu() as $menu_item) {
 
     <!-- Replies section -->
     <div id="replies">
-        <h3>Replies</h3>
         <?php
         $replies = do_getRepliesForThread($thread_id);
         if($replies && $replies->num_rows > 0) {
