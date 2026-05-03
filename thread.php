@@ -135,7 +135,11 @@ foreach(do_getHomePageMenu() as $menu_item) {
                 </span>
             </h3>
 
-            <div class="body"><?php echo do_RenderTopicContent($thread['content']); ?>
+            <div class="body"><?php
+$topic_body_html = do_RenderTopicContent($thread['content']);
+$topic_body_html = str_replace('---<br />', do_getAppendSeparatorHtml() . '<br />', $topic_body_html);
+echo $topic_body_html;
+?>
 <?php echo do_getPostRevisionNoteHtml(isset($thread['is_edited']) ? $thread['is_edited'] : 0, isset($thread['edited_at']) ? $thread['edited_at'] : 0, isset($thread['poster_id']) ? $thread['poster_id'] : 0); ?>
                 <ul class="menu"><li><?php
         if(do_isLoggedIn()) {
@@ -200,7 +204,9 @@ foreach(do_getHomePageMenu() as $menu_item) {
                 echo ' replied about <strong><span class="help" title="' . date('Y-m-d H:i:s \\U\\T\\C — l \\t\\h\\e jS \\o\\f F Y, g:i A', $reply['created_at']) . '">' . htmlspecialchars(fun_timeAgo($reply['created_at'])) . '</span></strong>';
                 echo ' <span class="reply_id unimportant">#' . intval($reply['id']) . '</span>';
                 echo '</h3>';
-                echo '<div class="body">' . do_RenderReplyText($reply['content'], $reply['id']);
+                $reply_body_html = do_RenderReplyText($reply['content'], $reply['id']);
+                $reply_body_html = str_replace('---<br />', do_getAppendSeparatorHtml() . '<br />', $reply_body_html);
+                echo '<div class="body">' . $reply_body_html;
                 echo do_getPostRevisionNoteHtml(isset($reply['is_edited']) ? $reply['is_edited'] : 0, isset($reply['edited_at']) ? $reply['edited_at'] : 0, isset($reply['poster_id']) ? $reply['poster_id'] : 0);
                 if($can_modify_reply) {
                     echo '<ul class="menu"><li><a href="/edit_post/reply/' . intval($reply['id']) . '">' . $reply_edit_label . '</a></li></ul>';
