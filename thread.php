@@ -108,7 +108,6 @@ foreach(do_getHomePageMenu() as $menu_item) {
 <?php $thread_flair_breakdown = do_getFlairBreakdownForPost($thread_id); ?>
 <?php $thread_user_flair_votes = do_isLoggedIn() ? do_getUserFlairVotesForThread($thread_id, $current_user_id) : array(); ?>
 <?php $thread_is_party = intval($thread['isParty']) === 1; ?>
-<?php $thread_can_vote_flairs = do_isLoggedIn() && intval($thread['poster_id']) !== intval($current_user_id); ?>
 <?php
 $thread_consensus_label = 'No Consensus';
 if(chk_DoesPostHaveFlairYet($thread_id)) {
@@ -142,13 +141,8 @@ if(chk_DoesPostHaveFlairYet($thread_id)) {
     $chip_tone = !empty($flair_option['positive']) ? 'flair-chip-positive' : 'flair-chip-negative';
     $chip_title = htmlspecialchars($flair_option['name'] . ': ' . $flair_option['description'] . ' (' . intval($flair_option['count']) . ')');
     $chip_inner = '<span class="flair-chip-icon" aria-hidden="true">' . htmlspecialchars((string)$flair_option['icon']) . '</span><span class="flair-chip-count">' . intval($flair_option['count']) . '</span>';
-    if($thread_can_vote_flairs) {
-        $chip_state = $already_voted ? 'flair-chip-voted' : '';
-        echo '<a class="flair-chip flair-chip-link ' . $chip_tone . ' ' . $chip_state . '" href="' . $vote_url . '" title="' . $chip_title . '">' . $chip_inner . '</a>';
-    } else {
-        $chip_state = $already_voted ? 'flair-chip-voted' : 'flair-chip-locked';
-        echo '<span class="flair-chip ' . $chip_tone . ' ' . $chip_state . '" title="' . $chip_title . '">' . $chip_inner . '</span>';
-    }
+    $chip_state = $already_voted ? 'flair-chip-voted' : '';
+    echo '<a class="flair-chip flair-chip-link ' . $chip_tone . ' ' . $chip_state . '" href="' . $vote_url . '" title="' . $chip_title . '">' . $chip_inner . '</a>';
 } ?>
                     </span>
                 </span>
