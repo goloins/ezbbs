@@ -588,6 +588,10 @@ a.video {
     text-align: right;
 }
 
+.thread-consensus-inline {
+    white-space: nowrap;
+}
+
 .topic-row-flairs a,
 .topic-row-flairs span {
     margin-left: 0.25em;
@@ -636,6 +640,12 @@ a.video {
 
 .flair-chip-locked {
     opacity: 0.72;
+}
+
+.thread-inline-flairs {
+    display: inline-flex;
+    gap: 0.25em;
+    vertical-align: middle;
 }
 
 .meta-sep {

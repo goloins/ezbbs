@@ -104,11 +104,6 @@ function ezbbs_render_topic_row($topic, $site, $user, $categories) {
     $thread_url = '/topic/' . $topic_id;
     $visit_url = ezbbs_get_visit_link_for_topic($topic);
 
-    $current_user_id = do_getCurrentUserId();
-    $can_vote_flairs = do_isLoggedIn() && intval($topic['poster_id']) !== intval($current_user_id);
-    $flair_breakdown = do_getFlairBreakdownForPost($topic_id);
-    $user_flair_votes = $can_vote_flairs ? do_getUserFlairVotesForThread($topic_id, $current_user_id) : array();
-
     $replies_count = intval($topic['replies_count']);
     $visits_count = intval($topic['visits_count']);
     $time_ago = fun_timeAgo(intval($topic['last_bump']));
@@ -184,22 +179,15 @@ function ezbbs_render_topic_row($topic, $site, $user, $categories) {
         $meta_left .= ' <span class="meta-sep">|</span> <span class="unimportant">visit</span>';
     }
 
-    $meta_right = '';
-    if(count($flair_breakdown) > 0) {
-        foreach($flair_breakdown as $flair_option) {
-            $fid = intval($flair_option['flair_id']);
-            $already_voted = isset($user_flair_votes[$fid]);
-            $chip_tone = !empty($flair_option['positive']) ? 'flair-chip-positive' : 'flair-chip-negative';
-            $chip_title = htmlspecialchars($flair_option['name'] . ': ' . $flair_option['description'] . ' (' . intval($flair_option['count']) . ')');
-            $chip_inner = '<span class="flair-chip-icon" aria-hidden="true">' . htmlspecialchars((string)$flair_option['icon']) . '</span><span class="flair-chip-count">' . intval($flair_option['count']) . '</span>';
-
-            if($can_vote_flairs) {
-                $chip_state = $already_voted ? 'flair-chip-voted' : '';
-                $meta_right .= '<a class="flair-chip flair-chip-link ' . $chip_tone . ' ' . $chip_state . '" href="/do/flair/' . $topic_id . '/' . $fid . '" title="' . $chip_title . '">' . $chip_inner . '</a>';
-            } else {
-                $chip_state = $already_voted ? 'flair-chip-voted' : 'flair-chip-locked';
-                $meta_right .= '<span class="flair-chip ' . $chip_tone . ' ' . $chip_state . '" title="' . $chip_title . '">' . $chip_inner . '</span>';
+    $meta_right = '<span class="unimportant">No Consensus</span>';
+    if(chk_DoesPostHaveFlairYet($topic_id)) {
+        $consensus = do_getStandoutFlairsForPost($topic_id);
+        if($consensus && isset($consensus['flair_name'])) {
+            $plmn = '+';
+            if(intval($consensus['flair_count']) < 0) {
+                $plmn = '-';
             }
+            $meta_right = '<span class="thread-consensus-inline" title="Most-voted reaction right now.">' . htmlspecialchars($consensus['flair_name']) . ' (' . $plmn . intval(abs($consensus['flair_count'])) . ')</span>';
         }
     }
 
