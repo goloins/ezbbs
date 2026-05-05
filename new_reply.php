@@ -30,6 +30,16 @@ $prefill_content = '';
 $quote_box_title = 'Post you are replying to:';
 $quote_box_html = do_RenderTopicContent($thread['content']);
 
+if(isset($_GET['quote_reply']) && $_GET['quote_reply'] !== '') {
+    $quote_reply_id = intval($_GET['quote_reply']);
+    $quoted_reply = do_getReplyById($quote_reply_id);
+    if($quoted_reply && intval($quoted_reply['thread_id']) === $thread_id) {
+        $prefill_content = '>>' . $quote_reply_id . "\n\n";
+        $quote_box_title = 'Quoted reply #' . $quote_reply_id . ':';
+        $quote_box_html = do_RenderReplyText($quoted_reply['content'], $quote_reply_id);
+    }
+}
+
 if(isset($_GET['quote_topic']) && $_GET['quote_topic'] !== '') {
     $prefill_content = '>>' . $thread_id . "\n\n";
     $quote_box_title = 'Quoted topic post:';

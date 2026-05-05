@@ -208,8 +208,13 @@ echo $topic_body_html;
                 $reply_body_html = str_replace('---<br />', do_getAppendSeparatorHtml() . '<br />', $reply_body_html);
                 echo '<div class="body">' . $reply_body_html;
                 echo do_getPostRevisionNoteHtml(isset($reply['is_edited']) ? $reply['is_edited'] : 0, isset($reply['edited_at']) ? $reply['edited_at'] : 0, isset($reply['poster_id']) ? $reply['poster_id'] : 0);
-                if($can_modify_reply) {
-                    echo '<ul class="menu"><li><a href="/edit_post/reply/' . intval($reply['id']) . '">' . $reply_edit_label . '</a></li></ul>';
+                if(do_isLoggedIn()) {
+                    echo '<ul class="menu">';
+                    echo '<li><a href="/new_reply/' . $thread_id . '/quote_reply/' . intval($reply['id']) . '">Quote</a></li>';
+                    if($can_modify_reply) {
+                        echo '<li><a href="/edit_post/reply/' . intval($reply['id']) . '">' . $reply_edit_label . '</a></li>';
+                    }
+                    echo '</ul>';
                 }
                 if($thread_is_party) {
                     echo '<div class="party-ban-warning">USER WAS BANNED FOR THIS POST</div>';
