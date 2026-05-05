@@ -26,6 +26,8 @@ if(!$thread) {
 
 if(do_voteFlairForThread($thread_id, $flair_id, intval($user_id))) {
     do_logentry('Notice', 'User ' . intval($user_id) . ' voted flair ' . intval($flair_id) . ' on thread ' . intval($thread_id));
+} else {
+    do_logentry('Warning', 'Flair vote failed for user ' . intval($user_id) . ' on thread ' . intval($thread_id) . ' with flair ' . intval($flair_id));
 }
 
 header('Location: /thread/' . $thread_id);

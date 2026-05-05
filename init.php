@@ -1571,21 +1571,34 @@ function do_voteFlairForThread($thread_id, $flair_id, $user_id){
     if(!$thread) {
         return false;
     }
-    if(intval($thread['poster_id']) === $user_id) {
-        return false;
-    }
 
     $created_at = time();
     // One flair per user per thread: replace prior vote when user picks a new flair.
+    $go_sql->begin_transaction();
+
     $delete_stmt = $go_sql->prepare("DELETE FROM post_flairs WHERE thread_id = ? AND user_id = ?");
+    if(!$delete_stmt) {
+        $go_sql->rollback();
+        return false;
+    }
     $delete_stmt->bind_param("ii", $thread_id, $user_id);
     if(!$delete_stmt->execute()) {
+        $go_sql->rollback();
         return false;
     }
 
     $stmt = $go_sql->prepare("INSERT INTO post_flairs (thread_id, flair_id, user_id, created_at) VALUES (?, ?, ?, ?)");
+    if(!$stmt) {
+        $go_sql->rollback();
+        return false;
+    }
     $stmt->bind_param("iiii", $thread_id, $flair_id, $user_id, $created_at);
-    return $stmt->execute();
+    if(!$stmt->execute()) {
+        $go_sql->rollback();
+        return false;
+    }
+
+    return $go_sql->commit();
 }
 
 
