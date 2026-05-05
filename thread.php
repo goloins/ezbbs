@@ -109,17 +109,8 @@ foreach(do_getHomePageMenu() as $menu_item) {
 <?php $thread_user_flair_votes = do_isLoggedIn() ? do_getUserFlairVotesForThread($thread_id, $current_user_id) : array(); ?>
 <?php $thread_is_party = intval($thread['isParty']) === 1; ?>
 <?php
-$thread_consensus_label = 'No Consensus';
-if(chk_DoesPostHaveFlairYet($thread_id)) {
-    $consensus = do_getStandoutFlairsForPost($thread_id);
-    if($consensus && isset($consensus['flair_name'])) {
-        $plmn = '+';
-        if(intval($consensus['flair_count']) < 0) {
-            $plmn = '-';
-        }
-        $thread_consensus_label = $consensus['flair_name'] . ' (' . $plmn . intval(abs($consensus['flair_count'])) . ')';
-    }
-}
+$thread_consensus = do_getConsensusDisplayForPost($thread_id);
+$thread_consensus_label = $thread_consensus['label'];
 ?>
     <div class="thread-post" id="topic_<?php echo $thread_id; ?>">
 <?php ezbbs_renderUserPanel($topic_author, $site); ?>

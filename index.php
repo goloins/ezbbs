@@ -179,17 +179,8 @@ function ezbbs_render_topic_row($topic, $site, $user, $categories) {
         $meta_left .= ' <span class="meta-sep">|</span> <span class="unimportant">visit</span>';
     }
 
-    $meta_right = '<span class="unimportant">No Consensus</span>';
-    if(chk_DoesPostHaveFlairYet($topic_id)) {
-        $consensus = do_getStandoutFlairsForPost($topic_id);
-        if($consensus && isset($consensus['flair_name'])) {
-            $plmn = '+';
-            if(intval($consensus['flair_count']) < 0) {
-                $plmn = '-';
-            }
-            $meta_right = '<span class="thread-consensus-inline" title="Most-voted reaction right now.">' . htmlspecialchars($consensus['flair_name']) . ' (' . $plmn . intval(abs($consensus['flair_count'])) . ')</span>';
-        }
-    }
+    $consensus_display = do_getConsensusDisplayForPost($topic_id);
+    $meta_right = '<span class="thread-consensus-inline" title="' . htmlspecialchars($consensus_display['title']) . '">' . htmlspecialchars($consensus_display['label']) . '</span>';
 
     echo '<td class="topic_headline">' . $topic_headline;
     echo '<div class="topic-row-subline"><span class="topic-row-actions">' . $meta_left . '</span><span class="topic-row-flairs">' . trim($meta_right) . '</span></div>';

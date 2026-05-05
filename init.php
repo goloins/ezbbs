@@ -28,7 +28,7 @@ $site = array(
     'edit_text' => '$username <b>fucked around with</b> this post <i>$seconds</i>',
     'append_text' => '$username <b>remembered to add</b> some shit they forgot <i>$seconds</i>',
     'append_separator_text' => 'OP Updated',
-    'flair_consensus_min_votes' => 3,
+    'flair_consensus_min_votes' => 1,
     'disclaimer' => 'All trademarks and copyrights on this site are owned by their respective parties. All uploaded files and comments are the responsibility of their own posters.', //site disclaimer
     );
 
@@ -1639,7 +1639,10 @@ function do_getStandoutFlairListForPost($thread_id){
         }
     }
 
-    $min_votes = isset($site['flair_consensus_min_votes']) ? intval($site['flair_consensus_min_votes']) : 3;
+    $min_votes = isset($site['flair_consensus_min_votes']) ? intval($site['flair_consensus_min_votes']) : 1;
+    if($min_votes < 1) {
+        $min_votes = 1;
+    }
     if($total_votes < $min_votes) {
         return array();
     }
@@ -1674,6 +1677,67 @@ function do_getStandoutFlairsForPost($thread_id){
     $top_flair_name = key($standout_flairs);
     $flair_count = $top_flair;
     return array('flair_name' => $top_flair_name, 'flair_count' => $flair_count);
+}
+
+function do_getConsensusDisplayForPost($thread_id){
+    global $postFlairs;
+
+    $counts = do_getFlairCountsByIdForPost($thread_id);
+    $total_votes = 0;
+    $non_zero = array();
+
+    foreach($counts as $flair_id => $count) {
+        $count = intval($count);
+        $total_votes += $count;
+        if($count > 0) {
+            $non_zero[intval($flair_id)] = $count;
+        }
+    }
+
+    if($total_votes <= 0) {
+        return array(
+            'label' => 'No Consensus',
+            'title' => 'No flair votes yet.'
+        );
+    }
+
+    // Edge case: exactly two total votes split across two different flair choices.
+    if($total_votes === 2 && count($non_zero) === 2) {
+        $split_ids = array_keys($non_zero);
+        $first_id = intval($split_ids[0]);
+        $second_id = intval($split_ids[1]);
+        if(intval($non_zero[$first_id]) === 1 && intval($non_zero[$second_id]) === 1) {
+            $first_token = isset($postFlairs[$first_id]['icon']) ? trim((string)$postFlairs[$first_id]['icon']) : '';
+            $second_token = isset($postFlairs[$second_id]['icon']) ? trim((string)$postFlairs[$second_id]['icon']) : '';
+            if($first_token === '') {
+                $first_token = do_getFlairNameById($first_id);
+            }
+            if($second_token === '') {
+                $second_token = do_getFlairNameById($second_id);
+            }
+            return array(
+                'label' => 'It\'s split 50/50: ' . $first_token . '/' . $second_token,
+                'title' => 'Two votes, split evenly between two flair choices.'
+            );
+        }
+    }
+
+    $consensus = do_getStandoutFlairsForPost($thread_id);
+    if($consensus && isset($consensus['flair_name'])) {
+        $plmn = '+';
+        if(intval($consensus['flair_count']) < 0) {
+            $plmn = '-';
+        }
+        return array(
+            'label' => $consensus['flair_name'] . ' (' . $plmn . intval(abs($consensus['flair_count'])) . ')',
+            'title' => 'Most-voted reaction right now.'
+        );
+    }
+
+    return array(
+        'label' => 'No Consensus',
+        'title' => 'No clear consensus yet.'
+    );
 }
 
 
